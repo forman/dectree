@@ -23,7 +23,7 @@ values translate as follows with *a* and *b* being fuzzy truth values:
 * *a* or *b* --> max(*a*, *b*)
 * not *a* --> 1 - *a*
 
-For example, the condition `x is HIGH and y is not SLOW` translates to `min(HIGH(x), 1 - SLOW(x))`.   
+For example, the condition `x is HIGH and y is not SLOW` translates to `min(HIGH(x), 1 - SLOW(y))`.   
 
 ## Usage
 
