@@ -5,7 +5,7 @@ types:
     MIDDLE: triangle(x1=0, x2=127, x3=255)
     HIGH: ramp_up(x1=127, x2=255)
 
-  Certaincy:
+  Certainty:
     FALSE: false()
     TRUE: true()
 
@@ -17,11 +17,11 @@ inputs:
 
 
 outputs:
-  - greyish: Certaincy
-  - yellowish: Certaincy
-  - darkredish: Certaincy
-  - darkish: Certaincy
-  - not_darkish: Certaincy
+  - greyish: Certainty
+  - yellowish: Certainty
+  - darkredish: Certainty
+  - darkish: Certainty
+  - not_darkish: Certainty
 
 
 rules:

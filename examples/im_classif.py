@@ -36,14 +36,14 @@ def _Radiance_HIGH(x):
 
 
 @vectorize([float32(float32), float64(float64)])
-def _Certaincy_False(x):
-    # Certaincy.False: false()
+def _Certainty_False(x):
+    # Certainty.False: false()
     return 0.0
 
 
 @vectorize([float32(float32), float64(float64)])
-def _Certaincy_True(x):
-    # Certaincy.True: true()
+def _Certainty_True(x):
+    # Certainty.True: true()
     return 1.0
 
 
