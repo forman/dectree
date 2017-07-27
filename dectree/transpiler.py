@@ -35,6 +35,14 @@ CONFIG_DEFAULTS = {
 
 
 def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> Optional[str]:
+    """
+    Generate a decision tree function by transpiling *src_file* to *out_file* using the given *options*.
+
+    :param src_file: A file descriptor or a path-like object to the decision tree definition source file (YAML format)
+    :param out_file: A file descriptor or a path-like object to the module output file (Python)
+    :param options: Transpiler options
+    :return: A path to the written module output file (Python) or None if *out_file* is a file descriptor
+    """
     transpiler = Transpiler(src_file, out_file, **options)
     transpiler.transpile()
     return transpiler.out_path
