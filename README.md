@@ -14,7 +14,7 @@ the individual properties of an associated *fuzzy set*. The if/else-bodies can a
 or output assignments. An output variable is assigned one of the properties of its associated fuzzy set.
 
 Therefore the fuzzy set can be seen as a variable's data type defined in terms of the possible
-variable possible states, e.g. one of {HIGH, MIDDLE, LOW} or one of {FAST, SLOW}. Each property in the fuzzy set
+variable states, e.g. one of {HIGH, MIDDLE, LOW} or one of {FAST, SLOW}. Each property in the fuzzy set
 is a mapping from the variable's value (a floating point number of known range) to a fuzzy truth value 
 (in the range of zero to one) which verifies the property. Logical expressions that combine these truth 
 values translate as follows with *a* and *b* being fuzzy truth values:
@@ -23,7 +23,7 @@ values translate as follows with *a* and *b* being fuzzy truth values:
 * *a* or *b* --> max(*a*, *b*)
 * not *a* --> 1 - *a*
 
-For example the condition `x is HIGH and y not is SLOW` translates to `min(HIGH(x), 1 - SLOW(x))`.   
+For example, the condition `x is HIGH and y is not SLOW` translates to `min(HIGH(x), 1 - SLOW(x))`.   
 
 ## Usage
 
