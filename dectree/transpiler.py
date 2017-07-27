@@ -205,7 +205,7 @@ class Transpiler:
         numba_decorator = self._get_numba_decorator(prop_func=True)
         for type_name, type_properties in self.types.items():
             for prop_name, prop_value in type_properties.items():
-                func_body = eval(prop_value, propfuncs.__dict__, {})
+                func_body = eval(prop_value, vars(propfuncs), {})
                 func_body_lines = map(lambda line: '    ' + str(line), func_body.split('\n'))
                 self._write_lines('', '',
                                   numba_decorator,
