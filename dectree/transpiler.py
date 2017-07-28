@@ -95,6 +95,7 @@ class _Transpiler:
             self.src_path = None
 
         if not out_file:
+            assert self.src_path
             dir_name = os.path.dirname(self.src_path)
             base_name = os.path.splitext(os.path.basename(self.src_path))[0]
             self.out_file = os.path.join(dir_name, base_name + ".py")
@@ -108,6 +109,9 @@ class _Transpiler:
         finally:
             if self.src_path:
                 fd.close()
+
+        if not code:
+            raise ValueError('Invalid decision tree definition')
 
         self.options = code.get('options') or {}
         self.options.update(options)
@@ -428,7 +432,13 @@ def _types_to_type_defs(types: Dict[str, Dict[str, str]]) -> _TypeDefs:
         type_def = {}
         type_defs[type_name] = type_def
         for prop_name, prop_value in type_properties.items():
-            func_params, func_body = eval(prop_value, vars(propfuncs), {})
+            try:
+                prop_result = eval(prop_value, vars(propfuncs), {})
+            except Exception as a:
+                raise ValueError('Illegal value for property "{}" of type "{}": [{}]'.format(prop_name,
+                                                                                             type_name,
+                                                                                             prop_value))
+            func_params, func_body = prop_result
             type_def[prop_name] = prop_value, func_params, func_body
     return type_defs
 
@@ -447,12 +457,12 @@ def _get_type_name_and_prop_def(var_name: _VarName,
                                 var_defs: _VarDefs) -> Tuple[_TypeName, _PropDef]:
     type_name = var_defs.get(var_name)
     if type_name is None:
-        raise ValueError('Variable {} is undefined'.format(var_name))
+        raise ValueError('Variable "{}" is undefined'.format(var_name))
     type_def = type_defs.get(type_name)
     if type_def is None:
-        raise ValueError('Type {} of variable {} is undefined'.format(type_name, var_name))
+        raise ValueError('Type "{}" of variable "{}" is undefined'.format(type_name, var_name))
     if prop_name not in type_def:
-        raise ValueError('{} is not a property of type {} of variable {}'.format(prop_name, type_name, var_name))
+        raise ValueError('"{}" is not a property of type "{}" of variable "{}"'.format(prop_name, type_name, var_name))
     prop_def = type_def[prop_name]
     return type_name, prop_def
 

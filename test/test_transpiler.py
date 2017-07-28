@@ -2,11 +2,89 @@ import unittest
 import os.path
 import numpy as np
 from dectree.transpiler import transpile, _ConditionTranspiler
-
+from io import StringIO
 
 # http://numba.pydata.org/numba-doc/dev/user/jitclass.html
 
+
+def get_src(no1='false()', a='a', p1='P1', b='b', no2='NO'):
+    code = \
+    """
+    types:
+
+        P1:
+            LOW: ramp_down()
+            HIGH: ramp_up()
+
+        P2:
+            YES: true()
+            NO: {no1}
+
+    inputs:
+        - {a}: {p1}
+
+    outputs:
+        - b: P2
+
+    rules:
+        -
+            if a == LOW:
+                - {b}: {no2}
+            else:
+                - b: YES
+    """
+    return code.format(a=a, b=b, p1=p1, no1=no1, no2=no2)
+
+
+
 class TranspilerTest(unittest.TestCase):
+
+    def test_transpile_success(self):
+        src_file = StringIO(get_src())
+        out_file = StringIO()
+        transpile(src_file, out_file=out_file)
+        self.assertIsNotNone(out_file.getvalue())
+
+    def test_transpile_failures(self):
+        src_file = StringIO("")
+        with self.assertRaises(AssertionError) as cm:
+            transpile(src_file)
+
+        src_file = StringIO("")
+        out_file = StringIO()
+        with self.assertRaises(ValueError) as cm:
+            transpile(src_file, out_file=out_file)
+
+        src_file = StringIO(get_src(a='u'))
+        out_file = StringIO()
+        with self.assertRaises(ValueError) as cm:
+            transpile(src_file, out_file=out_file)
+        self.assertEqual(str(cm.exception), 'Variable "a" is undefined')
+
+        src_file = StringIO(get_src(b='u'))
+        out_file = StringIO()
+        with self.assertRaises(ValueError) as cm:
+            transpile(src_file, out_file=out_file)
+        self.assertEqual(str(cm.exception), 'Variable "u" is undefined')
+
+        src_file = StringIO(get_src(no1='false'))
+        out_file = StringIO()
+        with self.assertRaises(ValueError) as cm:
+            transpile(src_file, out_file=out_file)
+        self.assertEqual(str(cm.exception), 'Illegal value for property "False" of type "P2": [False]')
+
+        src_file = StringIO(get_src(p1='Radiance'))
+        out_file = StringIO()
+        with self.assertRaises(ValueError) as cm:
+            transpile(src_file, out_file=out_file)
+        self.assertEqual(str(cm.exception), 'Type "Radiance" of variable "a" is undefined')
+
+        src_file = StringIO(get_src(no2='Radiance'))
+        out_file = StringIO()
+        with self.assertRaises(ValueError) as cm:
+            transpile(src_file, out_file=out_file)
+        self.assertEqual(str(cm.exception), '"Radiance" is not a property of type "P2" of variable "b"')
+
     def test_transpile_with_defaults(self):
         src_file = os.path.join(os.path.dirname(__file__), 'dectree_test.yml')
         out_file = os.path.join(os.path.dirname(__file__), 'dectree_test.py')
