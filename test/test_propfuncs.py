@@ -56,7 +56,8 @@ class GeneratorsTest(unittest.TestCase):
             x, y = points[i]
             y_actual = g1(x)
             self.assertAlmostEqual(y_actual, y,
-                                   msg='at index={}: point=(x={}, y={}), got y={} instead\n{}'.format(i, x, y, y_actual, g1_code))
+                                   msg='at index={}: point=(x={}, y={}), got y={} instead\n{}'.format(i, x, y, y_actual,
+                                                                                                      g1_code))
 
         g2, g2_code = gen_func(f, vectorize=True)
         x, y = zip(*points)
@@ -64,14 +65,16 @@ class GeneratorsTest(unittest.TestCase):
         y_actual = g2(x)
         np.testing.assert_array_almost_equal(y_actual, y, err_msg=g2_code)
 
+
 def gen_func(f, vectorize=False):
-    body = f()
+    func_params, func_body_pattern = f()
+    func_body = func_body_pattern.format(**func_params)
     code_lines = []
     if vectorize:
         code_lines.append('from numba import vectorize, float64')
         code_lines.append('@vectorize([float64(float64)])')
     code_lines.append("def g(x):")
-    code_lines.extend(map(lambda l: '    ' + l, body.split('\n')))
+    code_lines.extend(map(lambda l: '    ' + l, func_body.split('\n')))
     code = '\n'.join(code_lines)
     locals = {}
     exec(code, None, locals)
