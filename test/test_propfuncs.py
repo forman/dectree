@@ -41,14 +41,25 @@ class GeneratorsTest(unittest.TestCase):
                                          (+1.00, 1.0),
                                          (+1.25, 1.0)])
 
-    def test_triangle(self):
-        self.run_func_tests(pf.triangle, [(-0.25, 0.0),
-                                          (+0.00, 0.0),
-                                          (+0.25, 0.5),
-                                          (+0.50, 1.0),
-                                          (+0.75, 0.5),
-                                          (+1.00, 0.0),
-                                          (+1.25, 0.0)])
+    def test_triangular(self):
+        self.run_func_tests(pf.triangular, [(-0.25, 0.0),
+                                            (+0.00, 0.0),
+                                            (+0.25, 0.5),
+                                            (+0.50, 1.0),
+                                            (+0.75, 0.5),
+                                            (+1.00, 0.0),
+                                            (+1.25, 0.0)])
+
+    def test_trapezoid(self):
+        self.run_func_tests(pf.trapezoid, [(-0.25, 0.0),
+                                           (+0.00, 0.0),
+                                           (+0.25, 0.75),
+                                           (+0.35, 1.0),
+                                           (+0.50, 1.0),
+                                           (+0.65, 1.0),
+                                           (+0.75, 0.75),
+                                           (+1.00, 0.0),
+                                           (+1.25, 0.0)])
 
     def run_func_tests(self, f, points):
         g1, g1_code = gen_func(f)

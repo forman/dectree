@@ -111,7 +111,15 @@ class _Transpiler:
                 fd.close()
 
         if not code:
-            raise ValueError('Invalid decision tree definition')
+            raise ValueError('Empty decision tree definition')
+
+        sections = ('types', 'inputs', 'outputs', 'rules')
+        if not all([section in code for section in sections]):
+            raise ValueError('Invalid decision tree definition: missing section {} or all of them'.format(sections))
+
+        for section in sections:
+            if not code[section]:
+                raise ValueError("Invalid decision tree definition: section '{}' is empty".format(section))
 
         self.options = code.get('options') or {}
         self.options.update(options)
@@ -434,7 +442,7 @@ def _types_to_type_defs(types: Dict[str, Dict[str, str]]) -> _TypeDefs:
         for prop_name, prop_value in type_properties.items():
             try:
                 prop_result = eval(prop_value, vars(propfuncs), {})
-            except Exception as a:
+            except Exception:
                 raise ValueError('Illegal value for property "{}" of type "{}": [{}]'.format(prop_name,
                                                                                              type_name,
                                                                                              prop_value))

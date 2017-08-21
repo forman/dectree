@@ -4,41 +4,40 @@ import numpy as np
 from dectree.transpiler import transpile, _ConditionTranspiler
 from io import StringIO
 
+
 # http://numba.pydata.org/numba-doc/dev/user/jitclass.html
 
 
 def get_src(no1='false()', a='a', p1='P1', b='b', no2='NO'):
     code = \
-    """
-    types:
-
-        P1:
-            LOW: ramp_down()
-            HIGH: ramp_up()
-
-        P2:
-            YES: true()
-            NO: {no1}
-
-    inputs:
-        - {a}: {p1}
-
-    outputs:
-        - b: P2
-
-    rules:
-        -
-            if a == LOW:
-                - {b}: {no2}
-            else:
-                - b: YES
-    """
+        """
+        types:
+    
+            P1:
+                LOW: ramp_down()
+                HIGH: ramp_up()
+    
+            P2:
+                YES: true()
+                NO: {no1}
+    
+        inputs:
+            - {a}: {p1}
+    
+        outputs:
+            - b: P2
+    
+        rules:
+            -
+                if a == LOW:
+                    - {b}: {no2}
+                else:
+                    - b: YES
+        """
     return code.format(a=a, b=b, p1=p1, no1=no1, no2=no2)
 
 
-
 class TranspilerTest(unittest.TestCase):
-
     def test_transpile_success(self):
         src_file = StringIO(get_src())
         out_file = StringIO()
@@ -54,6 +53,20 @@ class TranspilerTest(unittest.TestCase):
         out_file = StringIO()
         with self.assertRaises(ValueError) as cm:
             transpile(src_file, out_file=out_file)
+        self.assertEqual(str(cm.exception), 'Empty decision tree definition')
+
+        src_file = StringIO("types:\n    ")
+        out_file = StringIO()
+        with self.assertRaises(ValueError) as cm:
+            transpile(src_file, out_file=out_file)
+        self.assertEqual(str(cm.exception), "Invalid decision tree definition: missing section "
+                                            "('types', 'inputs', 'outputs', 'rules') or all of them")
+
+        src_file = StringIO("types: null\ninputs: null\noutputs: null\nrules: null\n")
+        out_file = StringIO()
+        with self.assertRaises(ValueError) as cm:
+            transpile(src_file, out_file=out_file)
+        self.assertEqual(str(cm.exception), "Invalid decision tree definition: section 'types' is empty")
 
         src_file = StringIO(get_src(a='u'))
         out_file = StringIO()
@@ -103,7 +116,7 @@ class TranspilerTest(unittest.TestCase):
         input.glint = 0.2
         input.radiance = 60.
         m.dectree_test.apply_rules(input, output)
-        self.assertAlmostEqual(output.cloudy, 0.8)
+        self.assertAlmostEqual(output.cloudy, 0.6)
         self.assertAlmostEqual(output.certain, 1.0)
 
     def test_transpile_parameterized(self):
@@ -126,7 +139,7 @@ class TranspilerTest(unittest.TestCase):
         input.glint = 0.2
         input.radiance = 60.
         m.dectree_test_p.apply_rules(input, output, params)
-        self.assertAlmostEqual(output.cloudy, 0.8)
+        self.assertAlmostEqual(output.cloudy, 0.6)
         self.assertAlmostEqual(output.certain, 1.0)
 
     def test_transpile_vectorized(self):
@@ -147,7 +160,7 @@ class TranspilerTest(unittest.TestCase):
         input.glint = np.array([0.2, 0.3])
         input.radiance = np.array([60.0, 10.0])
         m.dectree_test_v.apply_rules(input, output)
-        np.testing.assert_almost_equal(output.cloudy, np.array([0.8, 0.0]))
+        np.testing.assert_almost_equal(output.cloudy, np.array([0.6, 0.0]))
         np.testing.assert_almost_equal(output.certain, np.array([1.0, 1.0]))
 
 
