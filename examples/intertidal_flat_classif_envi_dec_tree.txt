@@ -1,0 +1,327 @@
+ENVI Decision Tree Text File (version=1.0)
+
+begin node
+  name = "nodata"
+  type = Decision
+  location = 1,1
+  expression = "b4 eq 0"
+end node
+
+begin node
+  name = "nodata"
+  type = Result
+  location = 2,2
+  parent name = "nodata"
+  parent decision = Yes
+  class value = 11
+  class rgb = 0,0,0
+end node
+
+begin node
+  name = "vegetation?"
+  type = Decision
+  location = 2,1
+  parent name = "nodata"
+  parent decision = No
+  expression = "((b8 gt 0.33) and (b1 lt 0.85) ) or b8 lt 0.09"
+end node
+
+begin node
+  name = "Wasser?"
+  type = Decision
+  location = 3,2
+  parent name = "vegetation?"
+  parent decision = Yes
+  expression = "b5 lt 0.1 "
+end node
+
+begin node
+  name = "Wasser"
+  type = Result
+  location = 4,4
+  parent name = "Wasser?"
+  parent decision = Yes
+  class value = 10
+  class rgb = 0,0,255
+end node
+
+begin node
+  name = "muschel?"
+  type = Decision
+  location = 4,3
+  parent name = "Wasser?"
+  parent decision = No
+  expression = "(((b19 gt 0.15) and (b8 gt 0.4 and b8 lt 0.85) and b7 lt 0.5)) or (((b8 gt 0.4) and (b12+b13+b14 gt 0.11)) or (b8 gt 0.35 and (b12+b13+b14) gt 0.16))"
+end node
+
+begin node
+  name = "Schill?"
+  type = Decision
+  location = 5,6
+  parent name = "muschel?"
+  parent decision = Yes
+  expression = " (b12+b13+b14) gt 0.13"
+end node
+
+begin node
+  name = "Schill"
+  type = Result
+  location = 6,12
+  parent name = "Schill?"
+  parent decision = Yes
+  class value = 13
+  class rgb = 255,113,255
+end node
+
+begin node
+  name = "Muschel"
+  type = Result
+  location = 6,11
+  parent name = "Schill?"
+  parent decision = No
+  class value = 8
+  class rgb = 255,0,0
+end node
+
+begin node
+  name = "dense?"
+  type = Decision
+  location = 5,5
+  parent name = "muschel?"
+  parent decision = No
+  expression = "b8 gt 0.45"
+end node
+
+begin node
+  name = "dense2"
+  type = Result
+  location = 6,10
+  parent name = "dense?"
+  parent decision = Yes
+  class value = 7
+  class rgb = 46,139,87
+end node
+
+begin node
+  name = "dense1"
+  type = Result
+  location = 6,9
+  parent name = "dense?"
+  parent decision = No
+  class value = 6
+  class rgb = 0,255,0
+end node
+
+begin node
+  name = "Strand?"
+  type = Decision
+  location = 3,1
+  parent name = "vegetation?"
+  parent decision = No
+  expression = "b1 gt 1"
+end node
+
+begin node
+  name = "Strand"
+  type = Result
+  location = 4,2
+  parent name = "Strand?"
+  parent decision = Yes
+  class value = 9
+  class rgb = 230,230,230
+end node
+
+begin node
+  name = "Sand?"
+  type = Decision
+  location = 4,1
+  parent name = "Strand?"
+  parent decision = No
+  expression = "b3 lt 0.25"
+end node
+
+begin node
+  name = "Sand"
+  type = Result
+  location = 5,2
+  parent name = "Sand?"
+  parent decision = Yes
+  class value = 1
+  class rgb = 255,255,75
+end node
+
+begin node
+  name = "Misch?"
+  type = Decision
+  location = 5,1
+  parent name = "Sand?"
+  parent decision = No
+  expression = "b3 lt 0.3 and b8 gt 0"
+end node
+
+begin node
+  name = "Misch"
+  type = Result
+  location = 6,2
+  parent name = "Misch?"
+  parent decision = Yes
+  class value = 2
+  class rgb = 255,215,0
+end node
+
+begin node
+  name = "Misch2?"
+  type = Decision
+  location = 6,1
+  parent name = "Misch?"
+  parent decision = No
+  expression = "b3 lt 0.35 and b8 gt 0.0"
+end node
+
+begin node
+  name = "Misch2"
+  type = Result
+  location = 7,2
+  parent name = "Misch2?"
+  parent decision = Yes
+  class value = 3
+  class rgb = 238,154,0
+end node
+
+begin node
+  name = "Schlick?"
+  type = Decision
+  location = 7,1
+  parent name = "Misch2?"
+  parent decision = No
+  expression = "b3 lt 0.42 and b2 gt 0 and b8 gt 0.0"
+end node
+
+begin node
+  name = "Schlick"
+  type = Result
+  location = 8,2
+  parent name = "Schlick?"
+  parent decision = Yes
+  class value = 4
+  class rgb = 125,38,205
+end node
+
+begin node
+  name = "Schlick t"
+  type = Decision
+  location = 8,1
+  parent name = "Schlick?"
+  parent decision = No
+  expression = "b16 gt 0 and b8 gt 0"
+end node
+
+begin node
+  name = "schlick t"
+  type = Result
+  location = 9,2
+  parent name = "Schlick t"
+  parent decision = Yes
+  class value = 5
+  class rgb = 167,80,162
+end node
+
+begin node
+  name = "Wasser2"
+  type = Result
+  location = 9,1
+  parent name = "Schlick t"
+  parent decision = No
+  class value = 12
+  class rgb = 0,60,255
+end node
+
+begin variable
+  variable name = "b1"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\sand-tr_abundance.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b2"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\sand-wc_abundance.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b3"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\schatten_abundance.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b5"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\steigung_red_nIR.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b6"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\steigung_nIR_SWIR1.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b7"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\flh.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b8"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\ndvi.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b12"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_483.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b13"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_561.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b14"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_655.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b15"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_865.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b19"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\muschelindex.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b100"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\summary_error.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b16"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_1609.img"
+  file pos = 1
+end variable
+
+begin variable
+  variable name = "b4"
+  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\summary_error.img"
+  file pos = 1
+end variable

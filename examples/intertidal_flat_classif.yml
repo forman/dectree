@@ -1,0 +1,409 @@
+# From Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\klassifikation\dec_tree_wattklassen_l8_20160510_SH_L8_megarippel_server.txt
+
+types:
+  B1:
+    LT_085: lt(0.85)
+    GT_1:   gt(1.0)
+
+  B2:
+    GT_0:   gt(0.0)
+
+  B3:
+    LT_025: lt(0.25)
+    LT_03:  lt(0.3)
+    LT_035: lt(0.35)
+    LT_042: lt(0.42)
+
+  B4:
+    NODATA: eq(0.0)
+
+  B5:
+    LT_01:  lt(0.1)
+
+  B7:
+    LT_05:  lt(0.5)
+
+  B8:
+    GT_0:   gt(0.0)
+    LT_009: lt(0.09)
+    GT_033: gt(0.33)
+    GT_035: gt(0.35)
+    GT_04:  gt(0.4)
+    GT_045: gt(0.45)
+    LT_085: lt(0.85)
+
+  B16:
+    GT_0:   gt(0.0)
+
+  B19:
+    GT_015: gt(0.15)
+
+  BSum:
+    GT_011: gt(0.11)
+    GT_013: gt(0.13)
+    GT_016: gt(0.16)
+
+  Class:
+    FALSE:  false()
+    TRUE:   true()
+
+
+inputs:
+  #begin variable
+  #  variable name = "b1"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\sand-tr_abundance.img"
+  #  file pos = 1
+  #end variable
+  - b1: B1
+  #begin variable
+  #  variable name = "b2"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\sand-wc_abundance.img"
+  #  file pos = 1
+  #end variable
+  - b2: B2
+  #begin variable
+  #  variable name = "b3"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\schatten_abundance.img"
+  #  file pos = 1
+  #end variable
+  - b3: B3
+  #begin variable
+  #  variable name = "b4"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\summary_error.img"
+  #  file pos = 1
+  #end variable
+  - b4: B4
+  #begin variable
+  #  variable name = "b5"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\steigung_red_nIR.img"
+  #  file pos = 1
+  #end variable
+  - b5: B5
+  #begin variable
+  #  variable name = "b6"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\steigung_nIR_SWIR1.img"
+  #  file pos = 1
+  #end variable
+  - b6: B6
+  #begin variable
+  #  variable name = "b7"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\flh.img"
+  #  file pos = 1
+  #end variable
+  - b7: B7
+  #begin variable
+  #  variable name = "b8"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\ndvi.img"
+  #  file pos = 1
+  #end variable
+  - b8: B8
+  #begin variable
+  #  variable name = "b12"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_483.img"
+  #  file pos = 1
+  #end variable
+  - b12: B12
+  #begin variable
+  #  variable name = "b13"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_561.img"
+  #  file pos = 1
+  #end variable
+  - b13: B13
+  #begin variable
+  #  variable name = "b14"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_655.img"
+  #  file pos = 1
+  #end variable
+  - b14: B14
+  #begin variable
+  #  variable name = "b15"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_865.img"
+  #  file pos = 1
+  #end variable
+  - b15: B15
+  #begin variable
+  #  variable name = "b16"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_1609.img"
+  #  file pos = 1
+  #end variable
+  - b16: B16
+  #begin variable
+  #  variable name = "b19"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\muschelindex.img"
+  #  file pos = 1
+  #end variable
+  - b19: B19
+  #begin variable
+  #  variable name = "b100"
+  #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\summary_error.img"
+  #  file pos = 1
+  #end variable
+  - b100: B100
+  # b12+b13+b14
+  - bsum: BSum
+
+
+outputs:
+  #begin node
+  #  name = "nodata"
+  #  type = Result
+  #  location = 2,2
+  #  parent name = "nodata"
+  #  parent decision = Yes
+  #  class value = 11
+  #  class rgb = 0,0,0
+  #end node
+  - nodata: Class
+  #begin node
+  #  name = "Wasser"
+  #  type = Result
+  #  location = 4,4
+  #  parent name = "Wasser?"
+  #  parent decision = Yes
+  #  class value = 10
+  #  class rgb = 0,0,255
+  #end node
+  - Wasser: Class
+  #begin node
+  #  name = "Schill"
+  #  type = Result
+  #  location = 6,12
+  #  parent name = "Schill?"
+  #  parent decision = Yes
+  #  class value = 13
+  #  class rgb = 255,113,255
+  #end node
+  - Schill: Class
+  #begin node
+  #  name = "Muschel"
+  #  type = Result
+  #  location = 6,11
+  #  parent name = "Schill?"
+  #  parent decision = No
+  #  class value = 8
+  #  class rgb = 255,0,0
+  #end node
+  - Muschel: Class
+  #begin node
+  #  name = "dense2"
+  #  type = Result
+  #  location = 6,10
+  #  parent name = "dense?"
+  #  parent decision = Yes
+  #  class value = 7
+  #  class rgb = 46,139,87
+  #end node
+  - dense2: Class
+  #begin node
+  #  name = "dense1"
+  #  type = Result
+  #  location = 6,9
+  #  parent name = "dense?"
+  #  parent decision = No
+  #  class value = 6
+  #  class rgb = 0,255,0
+  #end node
+  - dense1: Class
+  #begin node
+  #  name = "Strand"
+  #  type = Result
+  #  location = 4,2
+  #  parent name = "Strand?"
+  #  parent decision = Yes
+  #  class value = 9
+  #  class rgb = 230,230,230
+  #end node
+  - Strand: Class
+  #begin node
+  #  name = "Sand"
+  #  type = Result
+  #  location = 5,2
+  #  parent name = "Sand?"
+  #  parent decision = Yes
+  #  class value = 1
+  #  class rgb = 255,255,75
+  #end node
+  - Sand: Class
+  #begin node
+  #  name = "Misch"
+  #  type = Result
+  #  location = 6,2
+  #  parent name = "Misch?"
+  #  parent decision = Yes
+  #  class value = 2
+  #  class rgb = 255,215,0
+  #end node
+  - Misch: Class
+  #begin node
+  #  name = "Misch2"
+  #  type = Result
+  #  location = 7,2
+  #  parent name = "Misch2?"
+  #  parent decision = Yes
+  #  class value = 3
+  #  class rgb = 238,154,0
+  #end node
+  - Misch2: Class
+  #begin node
+  #  name = "Schlick"
+  #  type = Result
+  #  location = 8,2
+  #  parent name = "Schlick?"
+  #  parent decision = Yes
+  #  class value = 4
+  #  class rgb = 125,38,205
+  #end node
+  - Schlick: Class
+  #begin node
+  #  name = "schlick t"
+  #  type = Result
+  #  location = 9,2
+  #  parent name = "Schlick t"
+  #  parent decision = Yes
+  #  class value = 5
+  #  class rgb = 167,80,162
+  #end node
+  - schlick_t: Class
+  #begin node
+  #  name = "Wasser2"
+  #  type = Result
+  #  location = 9,1
+  #  parent name = "Schlick t"
+  #  parent decision = No
+  #  class value = 12
+  #  class rgb = 0,60,255
+  #end node
+  - Wasser2: Class
+
+rules:
+  #begin node
+  #  name = "nodata"
+  #  type = Decision
+  #  location = 1,1
+  #  expression = "b4 eq 0"
+  #end node
+  - if b4 is NODATA:
+      - nodata: TRUE
+    else:
+      #begin node
+      #  name = "vegetation?"
+      #  type = Decision
+      #  location = 2,1
+      #  parent name = "nodata"
+      #  parent decision = No
+      #  expression = "((b8 gt 0.33) and (b1 lt 0.85) ) or b8 lt 0.09"
+      #end node
+      if (b8 is GT_033 and b1 is LT_085) or b8 is LT_009:
+        #begin node
+        #  name = "Wasser?"
+        #  type = Decision
+        #  location = 3,2
+        #  parent name = "vegetation?"
+        #  parent decision = Yes
+        #  expression = "b5 lt 0.1 "
+        #end node
+        if b5 is LT_01:
+          - Wasser: TRUE
+        else:
+          #begin node
+          #  name = "muschel?"
+          #  type = Decision
+          #  location = 4,3
+          #  parent name = "Wasser?"
+          #  parent decision = No
+          #  expression = "(((b19 gt 0.15) and (b8 gt 0.4 and b8 lt 0.85) and b7 lt 0.5)) or (((b8 gt 0.4) and (b12+b13+b14 gt 0.11)) or (b8 gt 0.35 and (b12+b13+b14) gt 0.16))"
+          #end node
+          if (b19 is GT_015 and (b8 is GT_04 and b8 is LT_085) and b7 is LT_05) or (b8 is GT_04 and bsum is GT_011) or (b8 is GT_035 and bsum is GT_016):
+            #begin node
+            #  name = "Schill?"
+            #  type = Decision
+            #  location = 5,6
+            #  parent name = "muschel?"
+            #  parent decision = Yes
+            #  expression = " (b12+b13+b14) gt 0.13"
+            #end node
+            if bsum is GT_013:
+              - Schill: TRUE
+            else:
+              - Muschel: TRUE
+          else:
+            #begin node
+            #  name = "dense?"
+            #  type = Decision
+            #  location = 5,5
+            #  parent name = "muschel?"
+            #  parent decision = No
+            #  expression = "b8 gt 0.45"
+            #end node
+            if b8 is GT_045:
+              - dense2: TRUE
+            else:
+              - dense1: TRUE
+      else:
+        #begin node
+        #  name = "Strand?"
+        #  type = Decision
+        #  location = 3,1
+        #  parent name = "vegetation?"
+        #  parent decision = No
+        #  expression = "b1 gt 1"
+        #end node
+        if b1 is GT_1:
+          - Strand: TRUE
+        else:
+          #begin node
+          #  name = "Sand?"
+          #  type = Decision
+          #  location = 4,1
+          #  parent name = "Strand?"
+          #  parent decision = No
+          #  expression = "b3 lt 0.25"
+          #end node
+          if b3 is LT_025:
+            - Sand: TRUE
+          else:
+            #begin node
+            #  name = "Misch?"
+            #  type = Decision
+            #  location = 5,1
+            #  parent name = "Sand?"
+            #  parent decision = No
+            #  expression = "b3 lt 0.3 and b8 gt 0"
+            #end node
+            if b3 is LT_03 and b8 is GT_0:
+              - Misch: TRUE
+            else:
+              #begin node
+              #  name = "Misch2?"
+              #  type = Decision
+              #  location = 6,1
+              #  parent name = "Misch?"
+              #  parent decision = No
+              #  expression = "b3 lt 0.35 and b8 gt 0.0"
+              #end node
+              if b3 is LT_035 and b8 is GT_0:
+                - Misch2: TRUE
+              else:
+                #begin node
+                #  name = "Schlick?"
+                #  type = Decision
+                #  location = 7,1
+                #  parent name = "Misch2?"
+                #  parent decision = No
+                #  expression = "b3 lt 0.42 and b2 gt 0 and b8 gt 0.0"
+                #end node
+                if b3 is LT_042 and b2 is GT_0 and b8 is GT_0:
+                  - Schlick: TRUE
+                else:
+                  #begin node
+                  #  name = "Schlick t"
+                  #  type = Decision
+                  #  location = 8,1
+                  #  parent name = "Schlick?"
+                  #  parent decision = No
+                  #  expression = "b16 gt 0 and b8 gt 0"
+                  #end node
+                  if b16 is GT_0 and b8 is GT_0:
+                    - schlick_t: TRUE
+                  else:
+                    - Wasser2: TRUE
