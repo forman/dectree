@@ -22,11 +22,11 @@ def main(args=None):
                         help="target directory for generated Python files")
 
     for option_name, option_def in CONFIG_DEFAULTS.items():
-        default, help = option_def
+        default, help_pattern = option_def
         parser.add_argument('--' + option_name,
                             default=default,
                             action='store_true' if isinstance(default, bool) else None,
-                            help=help.format(default=default))
+                            help=help_pattern.format(default=default))
 
     args = parser.parse_args(args=args)
     options = {k: v for k, v in vars(args).items() if k in CONFIG_DEFAULTS}

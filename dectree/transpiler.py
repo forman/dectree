@@ -18,23 +18,23 @@ CONFIG_NAME_PARAMETERIZE = 'parameterize'
 
 CONFIG_DEFAULTS = {
     CONFIG_NAME_OR_PATTERN:
-        ['max({x}, {y})', 'a pattern to translate or-expressions of form "x or y", default is "{default}"'],
+        ['max({x}, {y})', 'pattern to translate "x or y" expressions; default is "{default}"'],
     CONFIG_NAME_AND_PATTERN:
-        ['min({x}, {y})', 'a pattern to translate and-expressions of form "x and y", default is "{default}"'],
+        ['min({x}, {y})', 'pattern to translate "x and y" expressions; default is "{default}"'],
     CONFIG_NAME_NOT_PATTERN:
-        ['1.0 - ({x})', 'a pattern to translate NOT expressions of form "not x", default is "{default}"'],
+        ['1.0 - ({x})', 'pattern to translate "not x" expressions; default is "{default}"'],
     CONFIG_NAME_FUNCTION_NAME:
-        ['apply_rules', 'name of the generated function which implements the decision tree, default is "{default}"'],
+        ['apply_rules', 'name of the generated function which implements the decision tree; default is "{default}"'],
     CONFIG_NAME_TYPES:
-        [False, 'whether to use Python 3.3+ type annotations in generated code, default is {default}'],
+        [False, 'whether to use Python 3.3+ type annotations in generated code; off by default'],
     CONFIG_NAME_NO_JIT:
         [False,
-         'whether to disable just-in-time-compilation (JIT) using Numba in generated code, default is {default}'],
+         'whether to disable just-in-time-compilation (JIT) using Numba in generated code; JIT is on by default'],
     CONFIG_NAME_VECTORIZE:
-        [False, 'whether to generate a vectorized decision tree function using Numba, default is {default}'],
+        [False, 'whether to generate a vectorized decision tree function using Numba; off by default'],
     CONFIG_NAME_PARAMETERIZE:
         [False,
-         'whether to generate parameterized fuzzy sets, so thresholds can later be changed, default is {default}'],
+         'whether to generate parameterized fuzzy sets, so thresholds can later be changed; off by default'],
 }
 
 _PropName = str
