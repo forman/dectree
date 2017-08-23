@@ -63,22 +63,22 @@ class Input:
 
 
 _OutputSpec = [
-    ("greyish", float64[:]),
-    ("yellowish", float64[:]),
-    ("darkredish", float64[:]),
-    ("darkish", float64[:]),
-    ("not_darkish", float64[:]),
+    ("grey", float64[:]),
+    ("yellow", float64[:]),
+    ("dark_red", float64[:]),
+    ("dark", float64[:]),
+    ("not_dark", float64[:]),
 ]
 
 
 @jitclass(_OutputSpec)
 class Output:
     def __init__(self):
-        self.greyish = np.zeros(1, dtype=np.float64)
-        self.yellowish = np.zeros(1, dtype=np.float64)
-        self.darkredish = np.zeros(1, dtype=np.float64)
-        self.darkish = np.zeros(1, dtype=np.float64)
-        self.not_darkish = np.zeros(1, dtype=np.float64)
+        self.grey = np.zeros(1, dtype=np.float64)
+        self.yellow = np.zeros(1, dtype=np.float64)
+        self.dark_red = np.zeros(1, dtype=np.float64)
+        self.dark = np.zeros(1, dtype=np.float64)
+        self.not_dark = np.zeros(1, dtype=np.float64)
 
 
 @jit(nopython=True)
@@ -86,25 +86,25 @@ def apply_rules(input, output):
     t0 = 1.0
     #    if red is MIDDLE and green is MIDDLE and blue is MIDDLE:
     t1 = np.minimum(t0, np.minimum(np.minimum(_Radiance_MIDDLE(input.red), _Radiance_MIDDLE(input.green)), _Radiance_MIDDLE(input.blue)))
-    #        greyish: True
-    output.greyish = t1
+    #        grey: True
+    output.grey = t1
     #    if red is HIGH and green is HIGH or red is MIDDLE and green is MIDDLE:
     t1 = np.minimum(t0, np.maximum(np.minimum(_Radiance_HIGH(input.red), _Radiance_HIGH(input.green)), np.minimum(_Radiance_MIDDLE(input.red), _Radiance_MIDDLE(input.green))))
     #        if blue is LOW:
     t2 = np.minimum(t1, _Radiance_LOW(input.blue))
-    #            yellowish: True
-    output.yellowish = t2
+    #            yellow: True
+    output.yellow = t2
     #    if red is MIDDLE or red is LOW and green is MIDDLE or green is LOW:
     t1 = np.minimum(t0, np.maximum(np.maximum(_Radiance_MIDDLE(input.red), np.minimum(_Radiance_LOW(input.red), _Radiance_MIDDLE(input.green))), _Radiance_LOW(input.green)))
     #        if blue is not LOW and blue is not MIDDLE and blue is not HIGH:
     t2 = np.minimum(t1, np.minimum(np.minimum(1.0 - (_Radiance_LOW(input.blue)), 1.0 - (_Radiance_MIDDLE(input.blue))), 1.0 - (_Radiance_HIGH(input.blue))))
-    #            darkredish: True
-    output.darkredish = t2
+    #            dark_red: True
+    output.dark_red = t2
     #    if red is LOW and green is LOW and blue is LOW:
     t1 = np.minimum(t0, np.minimum(np.minimum(_Radiance_LOW(input.red), _Radiance_LOW(input.green)), _Radiance_LOW(input.blue)))
-    #        darkish: True
-    output.darkish = t1
+    #        dark: True
+    output.dark = t1
     #    else:
     t1 = 1.0 - (t1)
-    #        not_darkish: True
-    output.not_darkish = t1
+    #        not_dark: True
+    output.not_dark = t1
