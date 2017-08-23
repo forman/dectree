@@ -36,6 +36,16 @@ def _Radiance_HIGH(x):
 
 
 @vectorize([float32(float32), float64(float64)])
+def _Radiance_VERY_HIGH(x):
+    # Radiance.VERY_HIGH: ramp_up(x1=180, x2=220)
+    if x < 180.0:
+        return 0.0
+    if x < 220.0:
+        return (x - 180.0) / (220.0 - 180.0)
+    return 1.0
+
+
+@vectorize([float32(float32), float64(float64)])
 def _Certainty_False(x):
     # Certainty.False: false()
     return 0.0
@@ -68,6 +78,7 @@ _OutputSpec = [
     ("dark_red", float64[:]),
     ("dark", float64[:]),
     ("not_dark", float64[:]),
+    ("cloudy", float64[:]),
 ]
 
 
@@ -79,11 +90,16 @@ class Output:
         self.dark_red = np.zeros(1, dtype=np.float64)
         self.dark = np.zeros(1, dtype=np.float64)
         self.not_dark = np.zeros(1, dtype=np.float64)
+        self.cloudy = np.zeros(1, dtype=np.float64)
 
 
 @jit(nopython=True)
 def apply_rules(input, output):
     t0 = 1.0
+    #    if red is VERY_HIGH and green is VERY_HIGH and blue is VERY_HIGH:
+    t1 = np.minimum(t0, np.minimum(np.minimum(_Radiance_VERY_HIGH(input.red), _Radiance_VERY_HIGH(input.green)), _Radiance_VERY_HIGH(input.blue)))
+    #        cloudy: True
+    output.cloudy = t1
     #    if red is MIDDLE and green is MIDDLE and blue is MIDDLE:
     t1 = np.minimum(t0, np.minimum(np.minimum(_Radiance_MIDDLE(input.red), _Radiance_MIDDLE(input.green)), _Radiance_MIDDLE(input.blue)))
     #        grey: True

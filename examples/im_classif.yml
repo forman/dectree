@@ -4,6 +4,7 @@ types:
     LOW: ramp_down(x1=0, x2=127)
     MIDDLE: triangular(x1=0, x2=127, x3=255)
     HIGH: ramp_up(x1=127, x2=255)
+    VERY_HIGH: ramp_up(x1=180, x2=220)
 
   Certainty:
     FALSE: false()
@@ -22,9 +23,12 @@ outputs:
   - dark_red: Certainty
   - dark: Certainty
   - not_dark: Certainty
+  - cloudy: Certainty
 
 
 rules:
+  - if red is VERY_HIGH and green is VERY_HIGH and blue is VERY_HIGH:
+      - cloudy: TRUE
   - if red is MIDDLE and green is MIDDLE and blue is MIDDLE:
       - grey: TRUE
   - if red is HIGH and green is HIGH or red is MIDDLE and green is MIDDLE:
