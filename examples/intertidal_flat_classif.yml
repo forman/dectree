@@ -9,10 +9,10 @@ types:
     GT_0:   gt(0.0)
 
   B3:
-    LT_025: lt(0.25)
-    LT_03:  lt(0.3)
-    LT_035: lt(0.35)
-    LT_042: lt(0.42)
+    LT_005: lt(0.05)
+    LT_01:  lt(0.1)
+    LT_015: lt(0.15)
+    LT_02:  lt(0.2)
 
   B4:
     NODATA: eq(0.0)
@@ -359,7 +359,7 @@ rules:
           #  parent decision = No
           #  expression = "b3 lt 0.25"
           #end node
-          if b3 is LT_025:
+          if b3 is LT_005:
             - Sand: TRUE
           else:
             #begin node
@@ -370,7 +370,7 @@ rules:
             #  parent decision = No
             #  expression = "b3 lt 0.3 and b8 gt 0"
             #end node
-            if b3 is LT_03 and b8 is GT_0:
+            if b3 is LT_01 and b8 is GT_0:
               - Misch: TRUE
             else:
               #begin node
@@ -381,7 +381,7 @@ rules:
               #  parent decision = No
               #  expression = "b3 lt 0.35 and b8 gt 0.0"
               #end node
-              if b3 is LT_035 and b8 is GT_0:
+              if b3 is LT_015 and b8 is GT_0:
                 - Misch2: TRUE
               else:
                 #begin node
@@ -392,7 +392,7 @@ rules:
                 #  parent decision = No
                 #  expression = "b3 lt 0.42 and b2 gt 0 and b8 gt 0.0"
                 #end node
-                if b3 is LT_042 and b2 is GT_0 and b8 is GT_0:
+                if b3 is LT_02 and b2 is GT_0 and b8 is GT_0:
                   - Schlick: TRUE
                 else:
                   #begin node

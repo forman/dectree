@@ -22,27 +22,27 @@ def _B2_GT_0(x):
 
 
 @vectorize([float32(float32), float64(float64)])
-def _B3_LT_025(x):
-    # B3.LT_025: lt(0.25)
-    return 1.0 if x < 0.25 else 0.0
+def _B3_LT_005(x):
+    # B3.LT_005: lt(0.05)
+    return 1.0 if x < 0.05 else 0.0
 
 
 @vectorize([float32(float32), float64(float64)])
-def _B3_LT_03(x):
-    # B3.LT_03: lt(0.3)
-    return 1.0 if x < 0.3 else 0.0
+def _B3_LT_01(x):
+    # B3.LT_01: lt(0.1)
+    return 1.0 if x < 0.1 else 0.0
 
 
 @vectorize([float32(float32), float64(float64)])
-def _B3_LT_035(x):
-    # B3.LT_035: lt(0.35)
-    return 1.0 if x < 0.35 else 0.0
+def _B3_LT_015(x):
+    # B3.LT_015: lt(0.15)
+    return 1.0 if x < 0.15 else 0.0
 
 
 @vectorize([float32(float32), float64(float64)])
-def _B3_LT_042(x):
-    # B3.LT_042: lt(0.42)
-    return 1.0 if x < 0.42 else 0.0
+def _B3_LT_02(x):
+    # B3.LT_02: lt(0.2)
+    return 1.0 if x < 0.2 else 0.0
 
 
 @vectorize([float32(float32), float64(float64)])
@@ -268,26 +268,26 @@ def apply_rules(input, output):
     output.Strand = t3
     #            else:
     t3 = 1.0 - (t3)
-    #                if b3 is LT_025:
-    t4 = np.minimum(t3, _B3_LT_025(input.b3))
+    #                if b3 is LT_005:
+    t4 = np.minimum(t3, _B3_LT_005(input.b3))
     #                    Sand: True
     output.Sand = t4
     #                else:
     t4 = 1.0 - (t4)
-    #                    if b3 is LT_03 and b8 is GT_0:
-    t5 = np.minimum(t4, np.minimum(_B3_LT_03(input.b3), _B8_GT_0(input.b8)))
+    #                    if b3 is LT_01 and b8 is GT_0:
+    t5 = np.minimum(t4, np.minimum(_B3_LT_01(input.b3), _B8_GT_0(input.b8)))
     #                        Misch: True
     output.Misch = t5
     #                    else:
     t5 = 1.0 - (t5)
-    #                        if b3 is LT_035 and b8 is GT_0:
-    t6 = np.minimum(t5, np.minimum(_B3_LT_035(input.b3), _B8_GT_0(input.b8)))
+    #                        if b3 is LT_015 and b8 is GT_0:
+    t6 = np.minimum(t5, np.minimum(_B3_LT_015(input.b3), _B8_GT_0(input.b8)))
     #                            Misch2: True
     output.Misch2 = t6
     #                        else:
     t6 = 1.0 - (t6)
-    #                            if b3 is LT_042 and b2 is GT_0 and b8 is GT_0:
-    t7 = np.minimum(t6, np.minimum(np.minimum(_B3_LT_042(input.b3), _B2_GT_0(input.b2)), _B8_GT_0(input.b8)))
+    #                            if b3 is LT_02 and b2 is GT_0 and b8 is GT_0:
+    t7 = np.minimum(t6, np.minimum(np.minimum(_B3_LT_02(input.b3), _B2_GT_0(input.b2)), _B8_GT_0(input.b8)))
     #                                Schlick: True
     output.Schlick = t7
     #                            else:
