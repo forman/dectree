@@ -1,10 +1,11 @@
-import pandas as pd
-import numpy as np
+import time
 
+import numpy as np
+import pandas as pd
 from intertidal_flat_classif import Input, Output, apply_rules
 
-input_frame = pd.read_csv("verification_input.csv", delimiter='\t', skip_blank_lines=True, comment='#')
-output_frame = pd.read_csv("verification_expected.csv", delimiter='\t', skip_blank_lines=True, comment='#')
+input_frame = pd.read_csv("verification_input.txt", delimiter='\t', skip_blank_lines=True, comment='#')
+output_frame = pd.read_csv("verification_expected.txt", delimiter='\t', skip_blank_lines=True, comment='#')
 
 input_frame.sort_values(by="Label")
 output_frame.sort_values(by="Label")
@@ -51,32 +52,17 @@ def to_array(frame, name):
     return np.array(frame[name].values)
 
 
-dectree_input = Input()
-dectree_output = Output()
-
-
 expected_class = to_array(output_frame, "Band_1")
 
-import time
+dectree_input = Input()
+dectree_output = Output(expected_class.size)
+
+for input_name, column_name in input_names:
+    setattr(dectree_input, input_name, to_array(input_frame, column_name))
 
 t0 = time.clock()
 apply_rules(dectree_input, dectree_output)
-print('apply_rules() took {} ms for the first time'.format((time.clock() - t0) * 1000))
-
-import time
-n = 10
-tsum = 0
-for i in range(n):
-    for input_name, column_name in input_names:
-        setattr(dectree_input, input_name, to_array(input_frame, column_name))
-    t0 = time.clock()
-    apply_rules(dectree_input, dectree_output)
-    tsum += time.clock() - t0
-print('apply_rules() took {} ms in average'.format((tsum / n) * 1000))
-ms_per_pixel = (tsum / n / expected_class.size) * 1000
-pixel_per_sec = 1000 / ms_per_pixel
-print('apply_rules() took {} ms in average per pixel'.format(ms_per_pixel))
-print('which is {} pixels per second'.format(pixel_per_sec))
+ms_first_time = (time.clock() - t0) * 1000
 
 print('Inputs:')
 for input_name, _ in input_names:
@@ -88,6 +74,24 @@ for output_name in output_names:
     print('{}: {}'.format(output_name, getattr(dectree_output, output_name)))
 
 frame = pd.DataFrame.from_items(zip(['expected_class'] + [output_name for output_name in output_names],
-                                    [expected_class] + [getattr(dectree_output, output_name) for output_name in output_names]))
+                                    [expected_class] + [getattr(dectree_output, output_name) for output_name in
+                                                        output_names]))
 
-frame.to_csv(path_or_buf="verification_output.csv", sep='\t')
+frame.to_csv(path_or_buf="verification_output.txt", sep='\t')
+
+
+# Performance check:
+
+n = 25
+tsum = 0
+for i in range(n):
+    for input_name, column_name in input_names:
+        setattr(dectree_input, input_name, to_array(input_frame, column_name))
+    t0 = time.clock()
+    apply_rules(dectree_input, dectree_output)
+    tsum += time.clock() - t0
+
+ms_per_pixel = (tsum / n / expected_class.size) * 1000
+pixel_per_sec = 1000 / ms_per_pixel
+print('apply_rules() took {} ms for the first time'.format(ms_first_time))
+print('apply_rules() took {} ms per pixel according to {} pixels per second'.format(ms_per_pixel, pixel_per_sec))

@@ -1,6 +1,6 @@
-from typing import List, Dict, Any, Tuple, Optional
 import ast
 import os.path
+from typing import List, Dict, Any, Tuple, Optional
 
 # noinspection PyPackageRequirements
 import yaml  # from pyyaml
@@ -16,25 +16,43 @@ CONFIG_NAME_NO_JIT = 'no_jit'
 CONFIG_NAME_VECTORIZE = 'vectorize'
 CONFIG_NAME_PARAMETERIZE = 'parameterize'
 
+VECTORIZE_NONE = 'off'
+VECTORIZE_PROP = 'prop'
+VECTORIZE_FUNC = 'func'
+
+VECTORIZE_CHOICES = [VECTORIZE_NONE, VECTORIZE_PROP, VECTORIZE_FUNC]
+
 CONFIG_DEFAULTS = {
     CONFIG_NAME_OR_PATTERN:
-        ['max({x}, {y})', 'pattern to translate "x or y" expressions; default is "{default}"'],
+        ['max({x}, {y})',
+         'pattern to translate "x or y" expressions; default is "{default}"', None],
     CONFIG_NAME_AND_PATTERN:
-        ['min({x}, {y})', 'pattern to translate "x and y" expressions; default is "{default}"'],
+        ['min({x}, {y})',
+         'pattern to translate "x and y" expressions; default is "{default}"', None],
     CONFIG_NAME_NOT_PATTERN:
-        ['1.0 - ({x})', 'pattern to translate "not x" expressions; default is "{default}"'],
+        ['1.0 - ({x})',
+         'pattern to translate "not x" expressions; default is "{default}"', None],
     CONFIG_NAME_FUNCTION_NAME:
-        ['apply_rules', 'name of the generated function which implements the decision tree; default is "{default}"'],
+        ['apply_rules',
+         'name of the generated function which implements the decision tree; default is "{default}"', None],
     CONFIG_NAME_TYPES:
-        [False, 'whether to use Python 3.3+ type annotations in generated code; off by default'],
+        [False,
+         'whether to use Python 3.3+ type annotations in generated code; off by default', None],
     CONFIG_NAME_NO_JIT:
         [False,
-         'whether to disable just-in-time-compilation (JIT) using Numba in generated code; JIT is on by default'],
-    CONFIG_NAME_VECTORIZE:
-        [False, 'whether to generate a vectorized decision tree function using Numba; off by default'],
+         'whether to disable just-in-time-compilation (JIT) using Numba in generated code; JIT is on by default',
+         None],
     CONFIG_NAME_PARAMETERIZE:
         [False,
-         'whether to generate parameterized fuzzy sets, so thresholds can later be changed; off by default'],
+         'whether to generate parameterized fuzzy sets, so thresholds can be changed later; off by default',
+         None],
+    CONFIG_NAME_VECTORIZE:
+        [VECTORIZE_NONE,
+         'whether to generated vectorized functions for Numpy arrays; '
+         '"' + VECTORIZE_PROP + '" vectorizes membership functions (requires Numba), '
+                                 '"' + VECTORIZE_FUNC + '" vectorizes the decision tree function; '
+                                                        'default is "{default}"',
+         VECTORIZE_CHOICES],
 }
 
 _PropName = str
@@ -78,7 +96,7 @@ def _get_config_op_pattern(options, op_pattern_name):
     op_pattern = _get_config_value(options, op_pattern_name)
     no_jit = _get_config_value(options, 'no_jit')
     vectorize = _get_config_value(options, 'vectorize')
-    if not no_jit and vectorize:
+    if not no_jit and vectorize == VECTORIZE_PROP:
         return op_pattern.replace('min(', 'np.minimum(').replace('max(', 'np.maximum(')
     else:
         return op_pattern
@@ -158,12 +176,20 @@ class _Transpiler:
     def _write_imports(self):
         no_jit = _get_config_value(self.options, CONFIG_NAME_NO_JIT)
         vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
+
+        numba_import = 'from numba import jit, jitclass, float64'
+        numpy_import = 'import numpy as np'
+
         if no_jit:
-            pass
-        elif vectorize:
-            self._write_lines('', 'from numba import jit, jitclass, float32, float64, vectorize', 'import numpy as np')
+            if vectorize == VECTORIZE_FUNC:
+                self._write_lines('', numpy_import)
         else:
-            self._write_lines('', 'from numba import jit, jitclass, float64')
+            if vectorize == VECTORIZE_PROP:
+                self._write_lines('', numba_import + ', vectorize', numpy_import)
+            elif vectorize == VECTORIZE_FUNC:
+                self._write_lines('', numba_import, numpy_import)
+            else:
+                self._write_lines('', numba_import)
 
     def _write_type_prop_functions(self):
         parameterize = _get_config_value(self.options, CONFIG_NAME_PARAMETERIZE)
@@ -186,6 +212,7 @@ class _Transpiler:
                                   *func_body_lines)
 
     def _write_apply_rules_function(self):
+        vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
         parameterize = _get_config_value(self.options, CONFIG_NAME_PARAMETERIZE)
         function_name = _get_config_value(self.options, CONFIG_NAME_FUNCTION_NAME)
         if parameterize:
@@ -204,16 +231,22 @@ class _Transpiler:
         numba_decorator = self._get_numba_decorator()
         self._write_lines('', '',
                           numba_decorator,
-                          'def {}({}):'.format(function_name, function_args),
-                          '    t0 = 1.0')
+                          'def {}({}):'.format(function_name, function_args))
+
+        if vectorize == VECTORIZE_FUNC:
+            output_var = list(self.output_defs.keys())[0]
+            self._write_lines('    for i in range(len(output.{output_var})):'.format(output_var=output_var))
+            self._write_lines('        t0 = 1.0')
+        else:
+            self._write_lines('    t0 = 1.0')
 
         for rule in self.rules:
             self._write_rule(rule, 1)
 
     def _get_numba_decorator(self, prop_func=False):
         vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
-        if vectorize and prop_func:
-            numba_decorator = '@vectorize([float32(float32), float64(float64)])'
+        if vectorize == VECTORIZE_PROP and prop_func:
+            numba_decorator = '@vectorize([float64(float64)])'
         else:
             numba_decorator = '@jit(nopython=True)'
         no_jit = _get_config_value(self.options, CONFIG_NAME_NO_JIT)
@@ -248,7 +281,7 @@ class _Transpiler:
         for var_name in var_names:
             if param_values:
                 spec_lines.append('    ("{}", float64),'.format(var_name))
-            elif not no_jit and vectorize:
+            elif not no_jit and vectorize != VECTORIZE_NONE:
                 spec_lines.append('    ("{}", float64[:]),'.format(var_name))
             else:
                 spec_lines.append('    ("{}", float64),'.format(var_name))
@@ -270,12 +303,14 @@ class _Transpiler:
         for var_name in var_names:
             if param_values:
                 self._write_lines('        self.{} = {}'.format(var_name, param_values[var_name]))
-            elif not no_jit and vectorize:
+            elif vectorize != VECTORIZE_NONE:
                 self._write_lines('        self.{} = np.zeros(1, dtype=np.float64)'.format(var_name))
             else:
                 self._write_lines('        self.{} = 0.0'.format(var_name))
 
     def _write_rule(self, rule, level):
+        vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
+
         rule = dict(rule)
         try:
             else_body = rule.pop('else')
@@ -303,16 +338,28 @@ class _Transpiler:
         condition = self.condition_transpiler.transpile(if_cond[3:])
         t0 = 't' + str(level - 1)
         t1 = 't' + str(level)
-        indent = (4 * level) * ' '
-        self._write_lines('    #{}{}:'.format(indent, if_cond))
-        self._write_lines('    {} = {}'.format(t1, and_pattern.format(x=t0, y=condition)))
+
+        if vectorize == VECTORIZE_FUNC:
+            target_indent = 8 * ' '
+        else:
+            target_indent = 4 * ' '
+
+        source_indent = (4 * level) * ' '
+        self._write_lines('{tind}#{sind}{ifc}:'.format(tind=target_indent, sind=source_indent, ifc=if_cond))
+        self._write_lines('{tind}{tvar} = {tval}'.format(tind=target_indent,
+                                                         tvar=t1,
+                                                         tval=and_pattern.format(x=t0, y=condition)))
         self._write_rule_body(then_body, level + 1)
         if else_body:
-            self._write_lines('    #{}else:'.format(indent))
-            self._write_lines('    {} = {}'.format(t1, not_pattern.format(x=t1)))
+            self._write_lines('{tind}#{sind}else:'.format(tind=target_indent, sind=source_indent))
+            self._write_lines('{tind}{tvar} = {tval}'.format(tind=target_indent,
+                                                             tvar=t1,
+                                                             tval=and_pattern.format(x=t0,
+                                                                                     y=not_pattern.format(x=t1))))
             self._write_rule_body(else_body, level + 1)
 
     def _write_rule_body(self, rule_body, level):
+        vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
         if isinstance(rule_body, dict):
             self._write_rule(rule_body, level)
         else:
@@ -339,13 +386,25 @@ class _Transpiler:
                     else:
                         output_assignments.append(assignment_value)
 
-                    out_pattern = '{val}'
+                    out_pattern = '{tval}'
                     if len(output_assignments) > 1:
-                        out_pattern = or_pattern.format(x='output.{name}', y=out_pattern)
+                        if vectorize == VECTORIZE_FUNC:
+                            out_pattern = or_pattern.format(x='output.{name}[i]', y=out_pattern)
+                        else:
+                            out_pattern = or_pattern.format(x='output.{name}', y=out_pattern)
+                    if vectorize == VECTORIZE_FUNC:
+                        line_pattern = '{tind}output.{name}[i] = ' + out_pattern
+                        target_indent = 8 * ' '
+                    else:
+                        line_pattern = '{tind}output.{name} = ' + out_pattern
+                        target_indent = 4 * ' '
 
-                    line_pattern = '    output.{name} = ' + out_pattern
-                    self._write_lines('    #{}{}: {}'.format((level * 4) * ' ', var_name, var_value))
-                    self._write_lines(line_pattern.format(name=var_name, val=assignment_value))
+                    source_indent = (level * 4) * ' '
+                    self._write_lines('{tind}#{sind}{name}: {sval}'.format(tind=target_indent,
+                                                                            sind=source_indent,
+                                                                            name=var_name,
+                                                                            sval=var_value))
+                    self._write_lines(line_pattern.format(tind=target_indent, name=var_name, tval=assignment_value))
 
     def _get_output_def(self, var_name: _VarName, prop_name: _PropName) -> Tuple[_TypeName, _PropDef]:
         return _get_type_name_and_prop_def(var_name, prop_name, self.type_defs, self.output_defs)
@@ -376,6 +435,8 @@ class _ConditionTranspiler:
 
     def _transpile_expression(self, expr) -> str:
         if isinstance(expr, ast.Compare):
+            vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
+
             left = expr.left
             if not isinstance(left, ast.Name):
                 raise ValueError('Left side of comparison must be the name of an input')
@@ -383,10 +444,16 @@ class _ConditionTranspiler:
             prop_name = expr.comparators[0].id
             compare_op = expr.ops[0]
             if isinstance(compare_op, ast.Eq) or isinstance(compare_op, ast.Is):
-                op_pattern = '_{t}_{r}(input.{l}{p})'
+                if vectorize == VECTORIZE_FUNC:
+                    op_pattern = '_{t}_{r}(input.{l}{p}[i])'
+                else:
+                    op_pattern = '_{t}_{r}(input.{l}{p})'
             elif isinstance(compare_op, ast.NotEq) or isinstance(compare_op, ast.IsNot):
                 not_pattern = _get_config_op_pattern(self.options, CONFIG_NAME_NOT_PATTERN)
-                op_pattern = not_pattern.format(x='_{t}_{r}(input.{l}{p})')
+                if vectorize == VECTORIZE_FUNC:
+                    op_pattern = not_pattern.format(x='_{t}_{r}(input.{l}{p}[i])')
+                else:
+                    op_pattern = not_pattern.format(x='_{t}_{r}(input.{l}{p})')
             else:
                 raise ValueError('"==", "!=", "is", and "is not" are the only supported comparison operators')
             type_name, prop_def = _get_type_name_and_prop_def(var_name, prop_name, self.type_defs, self.var_defs)

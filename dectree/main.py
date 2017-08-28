@@ -1,7 +1,8 @@
 import argparse
-import sys
 import os.path
-from dectree.transpiler import transpile, CONFIG_DEFAULTS
+import sys
+
+from dectree.transpiler import transpile, CONFIG_DEFAULTS, VECTORIZE_PROP
 
 
 def main(args=None):
@@ -22,17 +23,24 @@ def main(args=None):
                         help="target directory for generated Python files")
 
     for option_name, option_def in CONFIG_DEFAULTS.items():
-        default, help_pattern = option_def
-        parser.add_argument('--' + option_name,
-                            default=default,
-                            action='store_true' if isinstance(default, bool) else None,
-                            help=help_pattern.format(default=default))
+        default, help_pattern, choices = option_def
+        if choices:
+            parser.add_argument('--' + option_name,
+                                default=default,
+                                help=help_pattern.format(default=default),
+                                choices=choices)
+        else:
+            parser.add_argument('--' + option_name,
+                                default=default,
+                                action='store_true' if isinstance(default, bool) else None,
+                                help=help_pattern.format(default=default))
 
     args = parser.parse_args(args=args)
     options = {k: v for k, v in vars(args).items() if k in CONFIG_DEFAULTS}
 
-    if args.no_jit and args.vectorize:
-        print('warning: --vectorize has no effect because of --no_jit')
+    if args.no_jit and args.vectorize == VECTORIZE_PROP:
+        print('error: --no_jit is illegal because --vectorize "' + VECTORIZE_PROP + '" requires JIT')
+        exit(1)
 
     out_dir = args.out
     if out_dir is not None:

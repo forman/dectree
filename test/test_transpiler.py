@@ -1,7 +1,7 @@
 import unittest
 import os.path
 import numpy as np
-from dectree.transpiler import transpile, _ConditionTranspiler
+from dectree.transpiler import transpile, _ConditionTranspiler, VECTORIZE_PROP
 from io import StringIO
 
 
@@ -12,30 +12,29 @@ def get_src(no1='false()', a='a', p1='P1', b='b', no2='NO'):
     code = \
         """
         types:
-    
+
             P1:
                 LOW: ramp_down()
                 HIGH: ramp_up()
-    
+
             P2:
                 YES: true()
                 NO: {no1}
-    
+
         inputs:
-            {a}: {p1}
-    
+            - {a}: {p1}
+
         outputs:
-            b: P2
-    
+            - b: P2
+
         rules:
             -
-                - if a == LOW:
-                    {b}: {no2}
-                - elif a == HIGH:
-                    {b}: {no2}
-                - else:
-                    b: YES
+                if a == LOW:
+                    - {b}: {no2}
+                else:
+                    - b: YES
         """
+
     return code.format(a=a, b=b, p1=p1, no1=no1, no2=no2)
 
 
@@ -149,7 +148,7 @@ class TranspilerTest(unittest.TestCase):
         out_file = os.path.join(os.path.dirname(__file__), 'dectree_test_v.py')
         if os.path.exists(out_file):
             os.remove(out_file)
-        transpile(src_file, out_file=out_file, vectorize=True)
+        transpile(src_file, out_file=out_file, vectorize=VECTORIZE_PROP)
         self.assertTrue(os.path.exists(out_file))
         m = __import__('test.dectree_test_v')
         self.assertTrue(hasattr(m, 'dectree_test_v'))
@@ -206,7 +205,7 @@ class ConditionTranspilerTest(unittest.TestCase):
         self.assertEqual(transpiler.transpile('x == HI and not (y == FAST or x == LO)'),
                          'min(_XType_HI(input.x), 1.0 - (max(_YType_FAST(input.y), _XType_LO(input.x))))')
 
-        options = dict(vectorize=True)
+        options = dict(vectorize=VECTORIZE_PROP)
         transpiler = _ConditionTranspiler(type_defs, var_defs, options)
         self.assertEqual(transpiler.transpile('x == HI and not (y == FAST or x == LO)'),
                          'np.minimum(_XType_HI(input.x), 1.0 - (np.maximum(_YType_FAST(input.y), _XType_LO(input.x))))')
@@ -216,7 +215,7 @@ class ConditionTranspilerTest(unittest.TestCase):
         self.assertEqual(transpiler.transpile('x == HI and not (y == FAST or x == LO)'),
                          'min(_XType_HI(input.x, x1=params.XType_HI_x1, x2=params.XType_HI_x2), 1.0 - (max(_YType_FAST(input.y), _XType_LO(input.x, x1=params.XType_LO_x1, x2=params.XType_LO_x2))))')
 
-        options = dict(vectorize=True, parameterize=True)
+        options = dict(vectorize=VECTORIZE_PROP, parameterize=True)
         transpiler = _ConditionTranspiler(type_defs, var_defs, options)
         self.assertEqual(transpiler.transpile('x == HI and not (y == FAST or x == LO)'),
                          'np.minimum(_XType_HI(input.x, x1=params.XType_HI_x1, x2=params.XType_HI_x2), 1.0 - (np.maximum(_YType_FAST(input.y), _XType_LO(input.x, x1=params.XType_LO_x1, x2=params.XType_LO_x2))))')
