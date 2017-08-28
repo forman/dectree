@@ -22,17 +22,19 @@ def get_src(no1='false()', a='a', p1='P1', b='b', no2='NO'):
                 NO: {no1}
     
         inputs:
-            - {a}: {p1}
+            {a}: {p1}
     
         outputs:
-            - b: P2
+            b: P2
     
         rules:
             -
-                if a == LOW:
-                    - {b}: {no2}
-                else:
-                    - b: YES
+                - if a == LOW:
+                    {b}: {no2}
+                - elif a == HIGH:
+                    {b}: {no2}
+                - else:
+                    b: YES
         """
     return code.format(a=a, b=b, p1=p1, no1=no1, no2=no2)
 
