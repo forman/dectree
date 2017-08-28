@@ -169,23 +169,23 @@ _InputSpec = [
 
 @jitclass(_InputSpec)
 class Input:
-    def __init__(self):
-        self.b1 = np.zeros(1, dtype=np.float64)
-        self.b2 = np.zeros(1, dtype=np.float64)
-        self.b3 = np.zeros(1, dtype=np.float64)
-        self.b4 = np.zeros(1, dtype=np.float64)
-        self.b5 = np.zeros(1, dtype=np.float64)
-        self.b6 = np.zeros(1, dtype=np.float64)
-        self.b7 = np.zeros(1, dtype=np.float64)
-        self.b8 = np.zeros(1, dtype=np.float64)
-        self.b12 = np.zeros(1, dtype=np.float64)
-        self.b13 = np.zeros(1, dtype=np.float64)
-        self.b14 = np.zeros(1, dtype=np.float64)
-        self.b15 = np.zeros(1, dtype=np.float64)
-        self.b16 = np.zeros(1, dtype=np.float64)
-        self.b19 = np.zeros(1, dtype=np.float64)
-        self.b100 = np.zeros(1, dtype=np.float64)
-        self.bsum = np.zeros(1, dtype=np.float64)
+    def __init__(self, size: int):
+        self.b1 = np.zeros(size, dtype=np.float64)
+        self.b2 = np.zeros(size, dtype=np.float64)
+        self.b3 = np.zeros(size, dtype=np.float64)
+        self.b4 = np.zeros(size, dtype=np.float64)
+        self.b5 = np.zeros(size, dtype=np.float64)
+        self.b6 = np.zeros(size, dtype=np.float64)
+        self.b7 = np.zeros(size, dtype=np.float64)
+        self.b8 = np.zeros(size, dtype=np.float64)
+        self.b12 = np.zeros(size, dtype=np.float64)
+        self.b13 = np.zeros(size, dtype=np.float64)
+        self.b14 = np.zeros(size, dtype=np.float64)
+        self.b15 = np.zeros(size, dtype=np.float64)
+        self.b16 = np.zeros(size, dtype=np.float64)
+        self.b19 = np.zeros(size, dtype=np.float64)
+        self.b100 = np.zeros(size, dtype=np.float64)
+        self.bsum = np.zeros(size, dtype=np.float64)
 
 
 _OutputSpec = [
@@ -207,24 +207,24 @@ _OutputSpec = [
 
 @jitclass(_OutputSpec)
 class Output:
-    def __init__(self, n):
-        self.nodata = np.zeros(n, dtype=np.float64)
-        self.Wasser = np.zeros(n, dtype=np.float64)
-        self.Schill = np.zeros(n, dtype=np.float64)
-        self.Muschel = np.zeros(n, dtype=np.float64)
-        self.dense2 = np.zeros(n, dtype=np.float64)
-        self.dense1 = np.zeros(n, dtype=np.float64)
-        self.Strand = np.zeros(n, dtype=np.float64)
-        self.Sand = np.zeros(n, dtype=np.float64)
-        self.Misch = np.zeros(n, dtype=np.float64)
-        self.Misch2 = np.zeros(n, dtype=np.float64)
-        self.Schlick = np.zeros(n, dtype=np.float64)
-        self.schlick_t = np.zeros(n, dtype=np.float64)
-        self.Wasser2 = np.zeros(n, dtype=np.float64)
+    def __init__(self, size: int):
+        self.nodata = np.zeros(size, dtype=np.float64)
+        self.Wasser = np.zeros(size, dtype=np.float64)
+        self.Schill = np.zeros(size, dtype=np.float64)
+        self.Muschel = np.zeros(size, dtype=np.float64)
+        self.dense2 = np.zeros(size, dtype=np.float64)
+        self.dense1 = np.zeros(size, dtype=np.float64)
+        self.Strand = np.zeros(size, dtype=np.float64)
+        self.Sand = np.zeros(size, dtype=np.float64)
+        self.Misch = np.zeros(size, dtype=np.float64)
+        self.Misch2 = np.zeros(size, dtype=np.float64)
+        self.Schlick = np.zeros(size, dtype=np.float64)
+        self.schlick_t = np.zeros(size, dtype=np.float64)
+        self.Wasser2 = np.zeros(size, dtype=np.float64)
 
 
 @jit(nopython=True)
-def apply_rules(input, output):
+def apply_rules(input: Input, output: Output):
     for i in range(len(output.nodata)):
         t0 = 1.0
         #    if b4 is NODATA:

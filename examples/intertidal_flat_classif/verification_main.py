@@ -54,7 +54,7 @@ def to_array(frame, name):
 
 expected_class = to_array(output_frame, "Band_1")
 
-dectree_input = Input()
+dectree_input = Input(expected_class.size)
 dectree_output = Output(expected_class.size)
 
 for input_name, column_name in input_names:

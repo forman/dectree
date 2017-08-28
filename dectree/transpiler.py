@@ -7,6 +7,12 @@ import yaml  # from pyyaml
 
 import dectree.propfuncs as propfuncs
 
+PARAMS_CLASS_NAME = 'Params'
+
+OUTPUT_CLASS_NAME = 'Output'
+
+INPUT_CLASS_NAME = 'Input'
+
 CONFIG_NAME_OR_PATTERN = 'or_pattern'
 CONFIG_NAME_AND_PATTERN = 'and_pattern'
 CONFIG_NAME_NOT_PATTERN = 'not_pattern'
@@ -216,9 +222,12 @@ class _Transpiler:
         parameterize = _get_config_value(self.options, CONFIG_NAME_PARAMETERIZE)
         function_name = _get_config_value(self.options, CONFIG_NAME_FUNCTION_NAME)
         if parameterize:
-            function_params = [('input', 'Input'), ('output', 'Output'), ('params', 'Params')]
+            function_params = [('input', INPUT_CLASS_NAME),
+                               ('output', OUTPUT_CLASS_NAME),
+                               ('params', PARAMS_CLASS_NAME)]
         else:
-            function_params = [('input', 'Input'), ('output', 'Output')]
+            function_params = [('input', INPUT_CLASS_NAME),
+                               ('output', OUTPUT_CLASS_NAME)]
 
         type_annotations = _get_config_value(self.options, CONFIG_NAME_TYPES)
         if type_annotations:
@@ -275,6 +284,8 @@ class _Transpiler:
     def _write_class(self, class_name, var_names, param_values: Optional[Dict[str, Any]] = None):
         no_jit = _get_config_value(self.options, CONFIG_NAME_NO_JIT)
         vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
+        types = _get_config_value(self.options, CONFIG_NAME_TYPES)
+        is_io = param_values is None
 
         spec_name = '_{}Spec'.format(class_name)
         spec_lines = ['{} = ['.format(spec_name)]
@@ -296,13 +307,24 @@ class _Transpiler:
         if no_jit:
             numba_line = '# ' + numba_line
 
+        if is_io and vectorize == VECTORIZE_FUNC:
+            if types:
+                init_head = '    def __init__(self, size: int):'
+            else:
+                init_head = '    def __init__(self, size):'
+        else:
+            init_head = '    def __init__(self):'
+
+
         self._write_lines('', '',
                           numba_line,
                           'class {}:'.format(class_name),
-                          '    def __init__(self):')
+                          init_head)
         for var_name in var_names:
             if param_values:
                 self._write_lines('        self.{} = {}'.format(var_name, param_values[var_name]))
+            elif is_io and vectorize == VECTORIZE_FUNC:
+                self._write_lines('        self.{} = np.zeros(size, dtype=np.float64)'.format(var_name))
             elif vectorize != VECTORIZE_NONE:
                 self._write_lines('        self.{} = np.zeros(1, dtype=np.float64)'.format(var_name))
             else:
