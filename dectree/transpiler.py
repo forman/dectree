@@ -145,8 +145,8 @@ class _Transpiler:
             if not code[section]:
                 raise ValueError("Invalid decision tree definition: section '{}' is empty".format(section))
 
-        self.options = code.get('options') or {}
-        self.options.update(options)
+        options.update(code.get('options') or {})
+        self.options = options
         self.type_defs = _types_to_type_defs(code['types'])
         self.input_defs = _io_to_var_defs(code['inputs'])
         self.output_defs = _io_to_var_defs(code['outputs'])

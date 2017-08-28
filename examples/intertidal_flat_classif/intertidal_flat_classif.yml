@@ -1,5 +1,9 @@
 # From Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\klassifikation\dec_tree_wattklassen_l8_20160510_SH_L8_megarippel_server.txt
 
+options:
+  vectorize: func
+  types: true
+
 types:
   B1:
     LT_085: lt(0.85)
