@@ -148,7 +148,7 @@ will translate into
     <OUTPUT_1> = min(t1, <VALUE_1>)
     
     # else:
-    t1 = 1.0 - t1
+    t1 = min(t0, 1.0 - t1)
 
     #     - <OUTPUT_2>: <VALUE_2>
     <OUTPUT_2> = min(t1, <VALUE_2>)
@@ -191,7 +191,7 @@ thus the maximum value of all possible values for `<OUTPUT_2>` is taken
     <OUTPUT_2> = min(t3, <VALUE_2>)
     
     # else:
-    t1 = 1.0 - t1
+    t1 = min(t0, 1.0 - t1)
     
     #     if <COND_4>:
     t2 = min(t1, translate(<COND_4>))
@@ -200,7 +200,7 @@ thus the maximum value of all possible values for `<OUTPUT_2>` is taken
     <OUTPUT_3> = min(t2, <VALUE_3>)
 
     #     else:
-    t2 = 1.0 - t2
+    t2 = min(t1, 1.0 - t2)
 
     #         if <COND_5>:
     t3 = min(t2, translate(<COND_5>))
@@ -209,7 +209,7 @@ thus the maximum value of all possible values for `<OUTPUT_2>` is taken
     <OUTPUT_4> = min(t3, <VALUE_4>)
 
     #         else:
-    t3 = 1.0 - t3
+    t3 = min(t2, 1.0 - t3)
 
     #             <OUTPUT_1>: <VALUE_1> 
     <OUTPUT_1> = max(<OUTPUT_1>, min(t3, <VALUE_1>))
