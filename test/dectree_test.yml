@@ -6,7 +6,9 @@ options:
   #not_pattern: 1.0 - ({t})
   #function_name: apply_rules
   #types: false
-  #vectorize: false
+  #vectorize: off
+  #vectorize: prop
+  #vectorize: func
   #parameterize: false
   #no_jit: false
 
@@ -39,12 +41,12 @@ outputs:
 
 rules:
   -
-    if radiance == HIGH or radiance == MIDDLE:
-      if glint == LOW:
+    - if radiance == HIGH or radiance == MIDDLE:
+      - if glint == LOW:
         - cloudy: YES
         - certain: HIGH
-      else:
-        if glint == HIGH:
+      - else:
+        - if glint == HIGH:
           - certain: LOW
-    else:
+    - else:
       - certain: HIGH
