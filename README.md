@@ -102,7 +102,7 @@ or
 where `<BODY>` may be another nested rule or comprise a list of one or more output variable 
 assignments of the form
         
-        - <OUTPUT>: <PROPERTY>
+        <OUTPUT> = <PROPERTY>
             
 where `<OUTPUT>`is the name of any defined output and `<PROPERTY>` is the name of a property
 defined for the output type. The value of output properties Currently, the only membership functions supported for outputs 
@@ -133,9 +133,9 @@ expression precedences. A conditional expression `<CONDITION>` is translated by 
 A simple rule of the form
 
     if <CONDITION>:
-        - <OUTPUT_1>: <VALUE_1>
+        <OUTPUT_1> = <VALUE_1>
     else:
-        - <OUTPUT_2>: <VALUE_2>
+        <OUTPUT_2> = <VALUE_2>
         
 will translate into 
         
@@ -144,13 +144,13 @@ will translate into
     # if <CONDITION>:
     t1 = min(t0, translate(<CONDITION>))
 
-    #     - <OUTPUT_1>: <VALUE_1>
+    #     <OUTPUT_1> = <VALUE_1>
     <OUTPUT_1> = min(t1, <VALUE_1>)
     
     # else:
     t1 = min(t0, 1.0 - t1)
 
-    #     - <OUTPUT_2>: <VALUE_2>
+    #     <OUTPUT_2> = <VALUE_2>
     <OUTPUT_2> = min(t1, <VALUE_2>)
               
 The following example has nested rules and the output `<OUTPUT_2>` is assigned twice. 
@@ -158,16 +158,16 @@ The following example has nested rules and the output `<OUTPUT_2>` is assigned t
     if <COND_1>:
         if <COND_2>:
             if <COND_3>:
-                - <OUTPUT_1>: <VALUE_1>
-                - <OUTPUT_2>: <VALUE_2>
+                <OUTPUT_1> = <VALUE_1>
+                <OUTPUT_2> = <VALUE_2>
     else:
         if <COND_4>:
-            - <OUTPUT_3>: <VALUE_3>
+            <OUTPUT_3> = <VALUE_3>
         else:
             if <COND_5>:
-                - <OUTPUT_4>: <VALUE_4>
+                <OUTPUT_4> = <VALUE_4>
             else:
-                - <OUTPUT_2>: <VALUE_2>
+                <OUTPUT_2> = <VALUE_2>
         
 Multiple assignments to the same variable are interpreted as alternatives,
 thus the maximum value of all possible values for `<OUTPUT_2>` is taken 
@@ -184,10 +184,10 @@ thus the maximum value of all possible values for `<OUTPUT_2>` is taken
     #         if <COND_3>:
     t3 = min(t2, translate(<COND_3>))
 
-    #             - <OUTPUT_1>: <VALUE_1>
+    #             <OUTPUT_1> = <VALUE_1>
     <OUTPUT_1> = min(t3, <VALUE_1>)
     
-    #             - <OUTPUT_2>: <VALUE_2>
+    #             <OUTPUT_2> = <VALUE_2>
     <OUTPUT_2> = min(t3, <VALUE_2>)
     
     # else:
@@ -196,7 +196,7 @@ thus the maximum value of all possible values for `<OUTPUT_2>` is taken
     #     if <COND_4>:
     t2 = min(t1, translate(<COND_4>))
     
-    #         <OUTPUT_3>: <VALUE_3> 
+    #         <OUTPUT_3> = <VALUE_3> 
     <OUTPUT_3> = min(t2, <VALUE_3>)
 
     #     else:
@@ -205,12 +205,12 @@ thus the maximum value of all possible values for `<OUTPUT_2>` is taken
     #         if <COND_5>:
     t3 = min(t2, translate(<COND_5>))
     
-    #             <OUTPUT_4>: <VALUE_4> 
+    #             <OUTPUT_4> = <VALUE_4> 
     <OUTPUT_4> = min(t3, <VALUE_4>)
 
     #         else:
     t3 = min(t2, 1.0 - t3)
 
-    #             <OUTPUT_1>: <VALUE_1> 
+    #             <OUTPUT_1> = <VALUE_1> 
     <OUTPUT_1> = max(<OUTPUT_1>, min(t3, <VALUE_1>))
 
