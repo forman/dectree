@@ -1,3 +1,3 @@
+from .module import gen_module
 from .transpiler import transpile
-
-__all__ = ['transpile']
+from .propfuncs import *

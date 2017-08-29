@@ -2,13 +2,7 @@
 Define possible functions which may be used as values for property definitions within a fuzzy set.
 """
 
-from typing import Tuple, Dict, Any
-
-PropFuncParamName = str
-PropFuncParamValue = Any
-PropFuncParams = Dict[PropFuncParamName, PropFuncParamValue]
-PropFuncBody = str
-PropFuncResult = Tuple[PropFuncParams, PropFuncBody]
+from .types import PropFuncResult
 
 
 def true() -> PropFuncResult:

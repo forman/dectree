@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Tuple, Optional, Union
 import yaml  # from pyyaml
 
 import dectree.propfuncs as propfuncs
+from .types import VarName, PropName, TypeName, PropDef, TypeDefs, VarDefs, PropFuncParamName
 
 PARAMS_CLASS_NAME = 'Params'
 
@@ -62,20 +63,7 @@ CONFIG_DEFAULTS = {
          VECTORIZE_CHOICES],
 }
 
-_PropName = str
-_PropValue = str
-_PropFuncParamName = str
-_PropFuncParamValue = Any
-_PropFuncParams = Dict[_PropFuncParamName, _PropFuncParamValue]
-_PropFuncBody = str
-_PropDef = Tuple[_PropValue, _PropFuncParams, _PropFuncBody]
 
-_TypeName = str
-_TypeDef = Dict[_PropName, _PropDef]
-_TypeDefs = Dict[_TypeName, _TypeDef]
-
-_VarName = str
-_VarDefs = Dict[_VarName, _TypeName]
 
 
 def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> Optional[str]:
@@ -429,7 +417,7 @@ class _Transpiler:
         self._write_lines(line_pattern.format(tind=target_indent, name=var_name,
                                               tval=assignment_value))
 
-    def _get_output_def(self, var_name: _VarName, prop_name: _PropName) -> Tuple[_TypeName, _PropDef]:
+    def _get_output_def(self, var_name: VarName, prop_name: PropName) -> Tuple[TypeName, PropDef]:
         return _get_type_name_and_prop_def(var_name, prop_name, self.type_defs, self.output_defs)
 
     def _write_lines(self, *lines):
@@ -439,8 +427,8 @@ class _Transpiler:
 
 class _ConditionTranspiler:
     def __init__(self,
-                 type_defs: _TypeDefs,
-                 var_defs: _VarDefs,
+                 type_defs: TypeDefs,
+                 var_defs: VarDefs,
                  options: Dict[str, Any]):
         self.type_defs = type_defs
         self.var_defs = var_defs
@@ -524,7 +512,7 @@ class _ConditionTranspiler:
         raise ValueError('Unsupported expression')
 
 
-def _types_to_type_defs(types: Dict[str, Dict[str, str]]) -> _TypeDefs:
+def _types_to_type_defs(types: Dict[str, Dict[str, str]]) -> TypeDefs:
     type_defs = OrderedDict()
     for type_name, type_properties in types.items():
         type_def = {}
@@ -541,10 +529,10 @@ def _types_to_type_defs(types: Dict[str, Dict[str, str]]) -> _TypeDefs:
     return type_defs
 
 
-def _get_type_name_and_prop_def(var_name: _VarName,
-                                prop_name: _PropName,
-                                type_defs: _TypeDefs,
-                                var_defs: _VarDefs) -> Tuple[_TypeName, _PropDef]:
+def _get_type_name_and_prop_def(var_name: VarName,
+                                prop_name: PropName,
+                                type_defs: TypeDefs,
+                                var_defs: VarDefs) -> Tuple[TypeName, PropDef]:
     type_name = var_defs.get(var_name)
     if type_name is None:
         raise ValueError('Variable "{}" is undefined'.format(var_name))
@@ -557,9 +545,9 @@ def _get_type_name_and_prop_def(var_name: _VarName,
     return type_name, prop_def
 
 
-def _get_qualified_param_name(type_name: _TypeName,
-                              prop_name: _PropName,
-                              param_name: _PropFuncParamName) -> str:
+def _get_qualified_param_name(type_name: TypeName,
+                              prop_name: PropName,
+                              param_name: PropFuncParamName) -> str:
     return '{t}_{p}_{k}'.format(t=type_name, p=prop_name, k=param_name)
 
 
@@ -616,6 +604,7 @@ def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) -> List[Union[Tuple, List
             parsed_rule.append((keyword, condition, _parse_raw_rule(if_stmt_body)))
 
         elif assignment:
+            # noinspection PyUnresolvedReferences
             assignment_parts = assignment.split(None, 2)
             if len(assignment_parts) != 3 \
                     or not assignment_parts[0].isidentifier() \
