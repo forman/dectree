@@ -1,6 +1,6 @@
 import ast
 import os.path
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple, Optional, Union
 
 # noinspection PyPackageRequirements
 import yaml  # from pyyaml
@@ -56,8 +56,8 @@ CONFIG_DEFAULTS = {
         [VECTORIZE_NONE,
          'whether to generated vectorized functions for Numpy arrays; '
          '"' + VECTORIZE_PROP + '" vectorizes membership functions (requires Numba), '
-                                 '"' + VECTORIZE_FUNC + '" vectorizes the decision tree function; '
-                                                        'default is "{default}"',
+                                '"' + VECTORIZE_FUNC + '" vectorizes the decision tree function; '
+                                                       'default is "{default}"',
          VECTORIZE_CHOICES],
 }
 
@@ -315,7 +315,6 @@ class _Transpiler:
         else:
             init_head = '    def __init__(self):'
 
-
         self._write_lines('', '',
                           numba_line,
                           'class {}:'.format(class_name),
@@ -423,9 +422,9 @@ class _Transpiler:
 
                     source_indent = (level * 4) * ' '
                     self._write_lines('{tind}#{sind}{name}: {sval}'.format(tind=target_indent,
-                                                                            sind=source_indent,
-                                                                            name=var_name,
-                                                                            sval=var_value))
+                                                                           sind=source_indent,
+                                                                           name=var_name,
+                                                                           sval=var_value))
                     self._write_lines(line_pattern.format(tind=target_indent, name=var_name, tval=assignment_value))
 
     def _get_output_def(self, var_name: _VarName, prop_name: _PropName) -> Tuple[_TypeName, _PropDef]:
@@ -568,3 +567,83 @@ def _get_qualified_param_name(type_name: _TypeName,
                               prop_name: _PropName,
                               param_name: _PropFuncParamName) -> str:
     return '{t}_{p}_{k}'.format(t=type_name, p=prop_name, k=param_name)
+
+
+def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) -> List[Union[Tuple, List]]:
+    n = len(raw_rule)
+    parsed_rule = []
+    for i in range(n):
+        item = raw_rule[i]
+        if_stmt_part, if_stmt_body, assignment = None, None, None
+        try:
+            if_stmt_part, if_stmt_body = dict(item).popitem()
+        except AttributeError:
+            assignment = item
+
+        if if_stmt_part:
+            if_stmt_tokens = if_stmt_part.split(None, 1)
+            if len(if_stmt_tokens) == 0:
+                raise ValueError('illegal rule part: {}'.format(if_stmt_part))
+
+            keyword = if_stmt_tokens[0]
+
+            if keyword == 'if':
+                if i != 0:
+                    raise ValueError('"if" must be first in rule: {}'.format(if_stmt_part))
+                if len(if_stmt_tokens) != 2 or not if_stmt_tokens[1]:
+                    raise ValueError('illegal rule part: {}'.format(if_stmt_part))
+                condition = if_stmt_tokens[1]
+            elif keyword == 'else':
+                if len(if_stmt_tokens) == 1:
+                    if i < n - 2:
+                        raise ValueError('"else" must be last in rule: {}'.format(if_stmt_part))
+                    condition = None
+                else:
+                    elif_stmt_tokens = if_stmt_tokens[1].split(None, 1)
+                    if elif_stmt_tokens[0] == 'if':
+                        keyword, condition = 'elif', elif_stmt_tokens[1]
+                    else:
+                        raise ValueError('illegal rule part: {}'.format(if_stmt_part))
+            elif keyword == 'elif':
+                if len(if_stmt_tokens) != 2 or not if_stmt_tokens[1]:
+                    raise ValueError('illegal rule part: {}'.format(if_stmt_part))
+                condition = if_stmt_tokens[1]
+            else:
+                raise ValueError('illegal rule part: {}'.format(if_stmt_part))
+
+            parsed_rule.append((keyword, condition, _parse_raw_rule(if_stmt_body)))
+
+        elif assignment:
+            assignment_parts = assignment.split(None, 2)
+            if len(assignment_parts) != 3 \
+                    or not assignment_parts[0].isidentifier() \
+                    or assignment_parts[1] != '=' \
+                    or not assignment_parts[2]:
+                raise ValueError('illegal rule part: {}'.format(if_stmt_part))
+
+            parsed_rule.append(('=', assignment_parts[0], assignment_parts[2]))
+
+        else:
+            raise ValueError('illegal rule part: {}'.format(if_stmt_part))
+
+    return parsed_rule
+
+
+def _load_raw_rule(rule_code: str):
+    raw_lines = rule_code.split('\n')
+    yml_lines = []
+    for raw_line in raw_lines:
+        i = _count_leading_spaces(raw_line)
+        indent = raw_line[0:i]
+        content = raw_line[i:]
+        if content:
+            yml_lines.append(indent + '- ' + content)
+    return yaml.load('\n'.join(yml_lines))
+
+
+def _count_leading_spaces(s: str):
+    i = 0
+    for i in range(len(s)):
+        if not s[i].isspace():
+            return i
+    return i
