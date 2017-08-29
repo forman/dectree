@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 import pandas as pd
-from intertidal_flat_classif import Input, Output, apply_rules
+from intertidal_flat_classif_opt import Input, Output, apply_rules
 
 input_frame = pd.read_csv("verification_input.txt", delimiter='\t', skip_blank_lines=True, comment='#')
 output_frame = pd.read_csv("verification_expected.txt", delimiter='\t', skip_blank_lines=True, comment='#')

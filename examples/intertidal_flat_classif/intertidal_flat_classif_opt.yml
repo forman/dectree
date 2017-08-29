@@ -1,8 +1,8 @@
-# From Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\klassifikation\dec_tree_wattklassen_l8_20160510_SH_L8_megarippel_server.txt
-
 options:
   vectorize: func
   types: true
+
+# From Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\klassifikation\dec_tree_wattklassen_l8_20160510_SH_L8_megarippel_server.txt
 
 types:
   B1:
@@ -280,135 +280,32 @@ outputs:
   - Wasser2: Class
 
 rules:
-  #begin node
-  #  name = "nodata"
-  #  type = Decision
-  #  location = 1,1
-  #  expression = "b4 eq 0"
-  #end node
   - |
     if b4 is NODATA:
       nodata = TRUE
-    else:
-      #begin node
-      #  name = "vegetation?"
-      #  type = Decision
-      #  location = 2,1
-      #  parent name = "nodata"
-      #  parent decision = No
-      #  expression = "((b8 gt 0.33) and (b1 lt 0.85) ) or b8 lt 0.09"
-      #end node
-      if (b8 is GT_033 and b1 is LT_085) or b8 is LT_009:
-        #begin node
-        #  name = "Wasser?"
-        #  type = Decision
-        #  location = 3,2
-        #  parent name = "vegetation?"
-        #  parent decision = Yes
-        #  expression = "b5 lt 0.1 "
-        #end node
-        if b5 is LT_01:
-          Wasser = TRUE
+    else if (b8 is GT_033 and b1 is LT_085) or b8 is LT_009:
+      if b5 is LT_01:
+        Wasser = TRUE
+      else if (b19 is GT_015 and (b8 is GT_04 and b8 is LT_085) and b7 is LT_05) or (b8 is GT_04 and bsum is GT_011) or (b8 is GT_035 and bsum is GT_016):
+        if bsum is GT_013:
+          Schill = TRUE
         else:
-          #begin node
-          #  name = "muschel?"
-          #  type = Decision
-          #  location = 4,3
-          #  parent name = "Wasser?"
-          #  parent decision = No
-          #  expression = "(((b19 gt 0.15) and (b8 gt 0.4 and b8 lt 0.85) and b7 lt 0.5)) or (((b8 gt 0.4) and (b12+b13+b14 gt 0.11)) or (b8 gt 0.35 and (b12+b13+b14) gt 0.16))"
-          #end node
-          if (b19 is GT_015 and (b8 is GT_04 and b8 is LT_085) and b7 is LT_05) or (b8 is GT_04 and bsum is GT_011) or (b8 is GT_035 and bsum is GT_016):
-            #begin node
-            #  name = "Schill?"
-            #  type = Decision
-            #  location = 5,6
-            #  parent name = "muschel?"
-            #  parent decision = Yes
-            #  expression = " (b12+b13+b14) gt 0.13"
-            #end node
-            if bsum is GT_013:
-              Schill = TRUE
-            else:
-              Muschel = TRUE
-          else:
-            #begin node
-            #  name = "dense?"
-            #  type = Decision
-            #  location = 5,5
-            #  parent name = "muschel?"
-            #  parent decision = No
-            #  expression = "b8 gt 0.45"
-            #end node
-            if b8 is GT_045:
-              dense2 = TRUE
-            else:
-              dense1 = TRUE
+          Muschel = TRUE
+      else if b8 is GT_045:
+        dense2 = TRUE
       else:
-        #begin node
-        #  name = "Strand?"
-        #  type = Decision
-        #  location = 3,1
-        #  parent name = "vegetation?"
-        #  parent decision = No
-        #  expression = "b1 gt 1"
-        #end node
-        if b1 is GT_1:
-          Strand = TRUE
-        else:
-          #begin node
-          #  name = "Sand?"
-          #  type = Decision
-          #  location = 4,1
-          #  parent name = "Strand?"
-          #  parent decision = No
-          #  expression = "b3 lt 0.25"
-          #end node
-          if b3 is LT_005:
-            Sand = TRUE
-          else:
-            #begin node
-            #  name = "Misch?"
-            #  type = Decision
-            #  location = 5,1
-            #  parent name = "Sand?"
-            #  parent decision = No
-            #  expression = "b3 lt 0.3 and b8 gt 0"
-            #end node
-            if b3 is LT_01 and b8 is GT_0:
-              Misch = TRUE
-            else:
-              #begin node
-              #  name = "Misch2?"
-              #  type = Decision
-              #  location = 6,1
-              #  parent name = "Misch?"
-              #  parent decision = No
-              #  expression = "b3 lt 0.35 and b8 gt 0.0"
-              #end node
-              if b3 is LT_015 and b8 is GT_0:
-                Misch2 = TRUE
-              else:
-                #begin node
-                #  name = "Schlick?"
-                #  type = Decision
-                #  location = 7,1
-                #  parent name = "Misch2?"
-                #  parent decision = No
-                #  expression = "b3 lt 0.42 and b2 gt 0 and b8 gt 0.0"
-                #end node
-                if b3 is LT_02 and b2 is GT_0 and b8 is GT_0:
-                  Schlick = TRUE
-                else:
-                  #begin node
-                  #  name = "Schlick t"
-                  #  type = Decision
-                  #  location = 8,1
-                  #  parent name = "Schlick?"
-                  #  parent decision = No
-                  #  expression = "b16 gt 0 and b8 gt 0"
-                  #end node
-                  if b16 is GT_0 and b8 is GT_0:
-                    schlick_t = TRUE
-                  else:
-                    Wasser2 = TRUE
+        dense1 = TRUE
+    else if b1 is GT_1:
+      Strand = TRUE
+    else if b3 is LT_005:
+      Sand = TRUE
+    else if b3 is LT_01 and b8 is GT_0:
+      Misch = TRUE
+    else if b3 is LT_015 and b8 is GT_0:
+      Misch2 = TRUE
+    else if b3 is LT_02 and b2 is GT_0 and b8 is GT_0:
+      Schlick = TRUE
+    else if b16 is GT_0 and b8 is GT_0:
+      schlick_t = TRUE
+    else:
+      Wasser2 = TRUE

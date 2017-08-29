@@ -1,5 +1,6 @@
 import ast
 import os.path
+from collections import OrderedDict
 from typing import List, Dict, Any, Tuple, Optional, Union
 
 # noinspection PyPackageRequirements
@@ -147,10 +148,10 @@ class _Transpiler:
 
         options.update(code.get('options') or {})
         self.options = options
-        self.type_defs = _types_to_type_defs(code['types'])
-        self.input_defs = _io_to_var_defs(code['inputs'])
-        self.output_defs = _io_to_var_defs(code['outputs'])
-        self.rules = code['rules']
+        self.type_defs = _types_to_type_defs(_to_omap(code['types'], recursive=True))
+        self.input_defs = _to_omap(code['inputs'])
+        self.output_defs = _to_omap(code['outputs'])
+        self.rules = [_normalize_rule(raw_rule) for raw_rule in code['rules']]
 
         self.output_assignments = None
 
@@ -250,7 +251,7 @@ class _Transpiler:
             self._write_lines('    t0 = 1.0')
 
         for rule in self.rules:
-            self._write_rule(rule, 1)
+            self._write_rule(rule, 1, 1)
 
     def _get_numba_decorator(self, prop_func=False):
         vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
@@ -329,103 +330,104 @@ class _Transpiler:
             else:
                 self._write_lines('        self.{} = 0.0'.format(var_name))
 
-    def _write_rule(self, rule, level):
+    def _write_rule(self, rule: List, source_level: int, target_level: int):
+        sub_target_level = target_level
+        for stmt in rule:
+            keyword = stmt[0]
+            if keyword == 'if':
+                sub_target_level = target_level
+                self._write_stmt(keyword, stmt[1], stmt[2], source_level, sub_target_level)
+            elif keyword == 'elif':
+                sub_target_level += 1
+                self._write_stmt(keyword, stmt[1], stmt[2], source_level, sub_target_level)
+            elif keyword == 'else':
+                self._write_stmt(keyword, stmt[1], stmt[2], source_level, sub_target_level)
+            elif keyword == '=':
+                self._write_assignment(stmt[1], stmt[2], source_level, sub_target_level)
+            else:
+                raise NotImplemented
+
+    def _write_stmt(self, keyword: str, condition_expr: str, body: List, source_level: int, target_level: int):
         vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
-
-        rule = dict(rule)
-        try:
-            else_body = rule.pop('else')
-        except KeyError:
-            # ok, no "else" part
-            else_body = None
-
-        msg = 'Each rule must have a "if <condition>" part and can have an "else" part'
-        try:
-            if_cond, then_body = rule.popitem()
-            try:
-                rule.popitem()
-                raise ValueError(msg)
-            except KeyError:
-                pass  # ok!
-        except KeyError:
-            raise ValueError(msg)
-
-        if not if_cond.startswith('if '):
-            raise ValueError('{}, rule: {}'.format(msg, rule))
-
         and_pattern = _get_config_op_pattern(self.options, CONFIG_NAME_AND_PATTERN)
-        not_pattern = _get_config_op_pattern(self.options, CONFIG_NAME_NOT_PATTERN)
+        not_pattern = '1.0 - {x}'  # _get_config_op_pattern(self.options, CONFIG_NAME_NOT_PATTERN)
 
-        condition = self.condition_transpiler.transpile(if_cond[3:])
-        t0 = 't' + str(level - 1)
-        t1 = 't' + str(level)
-
+        source_indent = (4 * source_level) * ' '
         if vectorize == VECTORIZE_FUNC:
             target_indent = 8 * ' '
         else:
             target_indent = 4 * ' '
 
-        source_indent = (4 * level) * ' '
-        self._write_lines('{tind}#{sind}{ifc}:'.format(tind=target_indent, sind=source_indent, ifc=if_cond))
-        self._write_lines('{tind}{tvar} = {tval}'.format(tind=target_indent,
-                                                         tvar=t1,
-                                                         tval=and_pattern.format(x=t0, y=condition)))
-        self._write_rule_body(then_body, level + 1)
-        if else_body:
-            self._write_lines('{tind}#{sind}else:'.format(tind=target_indent, sind=source_indent))
-            self._write_lines('{tind}{tvar} = {tval}'.format(tind=target_indent,
-                                                             tvar=t1,
-                                                             tval=and_pattern.format(x=t0,
-                                                                                     y=not_pattern.format(x=t1))))
-            self._write_rule_body(else_body, level + 1)
-
-    def _write_rule_body(self, rule_body, level):
-        vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
-        if isinstance(rule_body, dict):
-            self._write_rule(rule_body, level)
+        if keyword == 'if' or keyword == 'elif':
+            condition = self.condition_transpiler.transpile(condition_expr)
+            if keyword == 'if':
+                t0 = 't' + str(target_level - 1)
+                t1 = 't' + str(target_level - 0)
+                self._write_lines('{tind}#{sind}{key} {expr}:'.format(tind=target_indent, sind=source_indent,
+                                                                      key=keyword, expr=condition_expr))
+                target_value = and_pattern.format(x=t0, y=condition)
+            else:
+                tp = 't' + str(target_level - 2)
+                t0 = 't' + str(target_level - 1)
+                t1 = 't' + str(target_level - 0)
+                self._write_lines('{tind}#{sind}{key} {expr}:'.format(tind=target_indent, sind=source_indent,
+                                                                      key=keyword, expr=condition_expr))
+                target_value = and_pattern.format(x=tp, y=not_pattern.format(x=t0))
+                self._write_lines('{tind}{tvar} = {tval}'.format(tind=target_indent, tvar=t0, tval=target_value))
+                target_value = and_pattern.format(x=t0, y=condition)
         else:
-            or_pattern = _get_config_op_pattern(self.options, CONFIG_NAME_OR_PATTERN)
-            not_pattern = _get_config_op_pattern(self.options, CONFIG_NAME_NOT_PATTERN)
+            t0 = 't' + str(target_level - 1)
+            t1 = 't' + str(target_level - 0)
+            self._write_lines('{tind}#{sind}else:'.format(tind=target_indent, sind=source_indent))
+            target_value = and_pattern.format(x=t0, y=not_pattern.format(x=t1))
+        self._write_lines('{tind}{tvar} = {tval}'.format(tind=target_indent, tvar=t1, tval=target_value))
+        self._write_rule(body, source_level + 1, target_level + 1)
 
-            t0 = 't' + str(level - 1)
-            for body_item in rule_body:
-                for var_name, var_value in body_item.items():
-                    _, prop_def = self._get_output_def(var_name, var_value)
-                    prop_value, _, _ = prop_def
-                    if prop_value == 'true()':
-                        assignment_value = t0
-                    elif prop_value == 'false()':
-                        assignment_value = not_pattern.format(x=t0)
-                    else:
-                        raise ValueError('Currently you can only assign properties,'
-                                         ' whose values are "true()" or "false()')
+    def _write_assignment(self, var_name: str, var_value: str, source_level: int, target_level: int):
+        vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
+        or_pattern = _get_config_op_pattern(self.options, CONFIG_NAME_OR_PATTERN)
+        not_pattern = _get_config_op_pattern(self.options, CONFIG_NAME_NOT_PATTERN)
 
-                    output_assignments = self.output_assignments.get(var_name)
-                    if output_assignments is None:
-                        output_assignments = [assignment_value]
-                        self.output_assignments[var_name] = output_assignments
-                    else:
-                        output_assignments.append(assignment_value)
+        source_indent = (source_level * 4) * ' '
+        if vectorize == VECTORIZE_FUNC:
+            target_indent = 8 * ' '
+        else:
+            target_indent = 4 * ' '
 
-                    out_pattern = '{tval}'
-                    if len(output_assignments) > 1:
-                        if vectorize == VECTORIZE_FUNC:
-                            out_pattern = or_pattern.format(x='output.{name}[i]', y=out_pattern)
-                        else:
-                            out_pattern = or_pattern.format(x='output.{name}', y=out_pattern)
-                    if vectorize == VECTORIZE_FUNC:
-                        line_pattern = '{tind}output.{name}[i] = ' + out_pattern
-                        target_indent = 8 * ' '
-                    else:
-                        line_pattern = '{tind}output.{name} = ' + out_pattern
-                        target_indent = 4 * ' '
+        t0 = 't' + str(target_level - 1)
 
-                    source_indent = (level * 4) * ' '
-                    self._write_lines('{tind}#{sind}{name}: {sval}'.format(tind=target_indent,
-                                                                           sind=source_indent,
-                                                                           name=var_name,
-                                                                           sval=var_value))
-                    self._write_lines(line_pattern.format(tind=target_indent, name=var_name, tval=assignment_value))
+        _, prop_def = self._get_output_def(var_name, var_value)
+        prop_value, _, _ = prop_def
+        if prop_value == 'true()':
+            assignment_value = t0
+        elif prop_value == 'false()':
+            assignment_value = not_pattern.format(x=t0)
+        else:
+            raise ValueError('Currently you can only assign properties,'
+                             ' whose values are "true()" or "false()')
+
+        output_assignments = self.output_assignments.get(var_name)
+        if output_assignments is None:
+            output_assignments = [assignment_value]
+            self.output_assignments[var_name] = output_assignments
+        else:
+            output_assignments.append(assignment_value)
+
+        out_pattern = '{tval}'
+        if len(output_assignments) > 1:
+            if vectorize == VECTORIZE_FUNC:
+                out_pattern = or_pattern.format(x='output.{name}[i]', y=out_pattern)
+            else:
+                out_pattern = or_pattern.format(x='output.{name}', y=out_pattern)
+        if vectorize == VECTORIZE_FUNC:
+            line_pattern = '{tind}output.{name}[i] = ' + out_pattern
+        else:
+            line_pattern = '{tind}output.{name} = ' + out_pattern
+
+        self._write_lines('{tind}#{sind}{name} = {sval}'.format(tind=target_indent, sind=source_indent,
+                                                                name=var_name, sval=var_value))
+        self._write_lines(line_pattern.format(tind=target_indent, name=var_name,
+                                              tval=assignment_value))
 
     def _get_output_def(self, var_name: _VarName, prop_name: _PropName) -> Tuple[_TypeName, _PropDef]:
         return _get_type_name_and_prop_def(var_name, prop_name, self.type_defs, self.output_defs)
@@ -523,7 +525,7 @@ class _ConditionTranspiler:
 
 
 def _types_to_type_defs(types: Dict[str, Dict[str, str]]) -> _TypeDefs:
-    type_defs = {}
+    type_defs = OrderedDict()
     for type_name, type_properties in types.items():
         type_def = {}
         type_defs[type_name] = type_def
@@ -531,20 +533,12 @@ def _types_to_type_defs(types: Dict[str, Dict[str, str]]) -> _TypeDefs:
             try:
                 prop_result = eval(prop_value, vars(propfuncs), {})
             except Exception:
-                raise ValueError('Illegal value for property "{}" of type "{}": [{}]'.format(prop_name,
-                                                                                             type_name,
-                                                                                             prop_value))
+                raise ValueError('Illegal value for property "{}" of type "{}": {}'.format(prop_name,
+                                                                                           type_name,
+                                                                                           prop_value))
             func_params, func_body = prop_result
             type_def[prop_name] = prop_value, func_params, func_body
     return type_defs
-
-
-def _io_to_var_defs(io: List[Dict[str, str]]) -> _VarDefs:
-    io_defs = {}
-    for item in io:
-        var_name, var_type = dict(item).popitem()
-        io_defs[var_name] = var_type
-    return io_defs
 
 
 def _get_type_name_and_prop_def(var_name: _VarName,
@@ -569,15 +563,23 @@ def _get_qualified_param_name(type_name: _TypeName,
     return '{t}_{p}_{k}'.format(t=type_name, p=prop_name, k=param_name)
 
 
+def _normalize_rule(raw_rule: Union[str, List]):
+    if isinstance(raw_rule, str):
+        raw_rule = _load_raw_rule(raw_rule)
+    return _parse_raw_rule(raw_rule)
+
+
 def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) -> List[Union[Tuple, List]]:
+    # print(raw_rule)
     n = len(raw_rule)
     parsed_rule = []
     for i in range(n):
         item = raw_rule[i]
+
         if_stmt_part, if_stmt_body, assignment = None, None, None
-        try:
+        if isinstance(item, dict):
             if_stmt_part, if_stmt_body = dict(item).popitem()
-        except AttributeError:
+        else:
             assignment = item
 
         if if_stmt_part:
@@ -637,7 +639,10 @@ def _load_raw_rule(rule_code: str):
         indent = raw_line[0:i]
         content = raw_line[i:]
         if content:
-            yml_lines.append(indent + '- ' + content)
+            if content[0] != '#':
+                yml_lines.append(indent + '- ' + content)
+            else:
+                yml_lines.append(indent + content)
     return yaml.load('\n'.join(yml_lines))
 
 
@@ -647,3 +652,39 @@ def _count_leading_spaces(s: str):
         if not s[i].isspace():
             return i
     return i
+
+
+def _to_omap(list_or_dict, recursive=False):
+    if not list_or_dict:
+        return list_or_dict
+
+    if _is_list_of_one_key_dicts(list_or_dict):
+        dict_copy = OrderedDict()
+        for item in list_or_dict:
+            key, item = dict(item).popitem()
+            dict_copy[key] = _to_omap(item) if recursive else item
+        return dict_copy
+
+    if recursive:
+        if isinstance(list_or_dict, list):
+            list_copy = []
+            for item in list_or_dict:
+                list_copy.append(_to_omap(item, recursive=True))
+            return list_copy
+        if isinstance(list_or_dict, dict):
+            dict_copy = OrderedDict()
+            for key, item in list_or_dict.items():
+                dict_copy[key] = _to_omap(item, recursive=True)
+            return dict_copy
+
+    return list_or_dict
+
+
+def _is_list_of_one_key_dicts(list):
+    try:
+        for item in list:
+            # noinspection PyUnusedLocal
+            (k, v), = item.items()
+    except (AttributeError, TypeError):
+        return False
+    return True

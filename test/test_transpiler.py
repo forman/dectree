@@ -18,8 +18,8 @@ def get_src(no1='false()', a='a', p1='P1', b='b', no2='NO'):
                 HIGH: ramp_up()
 
             P2:
-                YES: true()
-                NO: {no1}
+                "YES": true()
+                "NO": {no1}
 
         inputs:
             - {a}: {p1}
@@ -29,10 +29,10 @@ def get_src(no1='false()', a='a', p1='P1', b='b', no2='NO'):
 
         rules:
             -
-                if a == LOW:
-                    - {b}: {no2}
-                else:
-                    - b: YES
+                - if a == LOW:
+                    - {b} = {no2}
+                - else:
+                    - b = YES
         """
 
     return code.format(a=a, b=b, p1=p1, no1=no1, no2=no2)
@@ -85,7 +85,7 @@ class TranspilerTest(unittest.TestCase):
         out_file = StringIO()
         with self.assertRaises(ValueError) as cm:
             transpile(src_file, out_file=out_file)
-        self.assertEqual(str(cm.exception), 'Illegal value for property "False" of type "P2": [False]')
+        self.assertEqual(str(cm.exception), 'Illegal value for property "NO" of type "P2": False')
 
         src_file = StringIO(get_src(p1='Radiance'))
         out_file = StringIO()
