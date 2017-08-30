@@ -2,7 +2,8 @@ import argparse
 import os.path
 import sys
 
-from dectree.transpiler import transpile, CONFIG_DEFAULTS, VECTORIZE_PROP
+from dectree.codegen import CONFIG_DEFAULTS, VECTORIZE_PROP
+from dectree.transpiler import transpile
 
 
 def main(args=None):
@@ -36,7 +37,9 @@ def main(args=None):
                                 help=help_pattern.format(default=default))
 
     args = parser.parse_args(args=args)
-    options = {k: v for k, v in vars(args).items() if k in CONFIG_DEFAULTS}
+    options = {k: v for k, v in vars(args).items() if k in CONFIG_DEFAULTS and v != CONFIG_DEFAULTS[k][0]}
+
+    print("using options:\n%s" % options)
 
     if args.no_jit and args.vectorize == VECTORIZE_PROP:
         print('error: --no_jit is illegal because --vectorize "' + VECTORIZE_PROP + '" requires JIT')

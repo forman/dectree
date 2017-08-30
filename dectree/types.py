@@ -16,9 +16,5 @@ TypeDefs = Dict[TypeName, TypeDef]
 VarName = str
 VarDefs = Dict[VarName, TypeName]
 
-InputDefs = VarDefs
-OutputDefs = VarDefs
-
 Rule = str
 Rules = List[Rule]
-RuleOrRules = Union[Rule, Rules]

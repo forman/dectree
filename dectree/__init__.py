@@ -1,3 +1,3 @@
-from .module import gen_module
+from .codegen import gen_code
 from .transpiler import transpile
 from .propfuncs import *
