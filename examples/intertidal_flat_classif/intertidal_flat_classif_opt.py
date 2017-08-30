@@ -6,133 +6,312 @@ import numpy as np
 @jit(nopython=True)
 def _B1_LT_085(x):
     # B1.LT_085: lt(0.85)
-    return 1.0 if x < 0.85 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x < 0.85 else 0.0
+    x1 = 0.85 - 0.0
+    x2 = 0.85 + 0.0
+    if x <= x1:
+        return 1.0
+    if x <= x2:
+        return 1.0 - (x - x1) / (x2 - x1)
+    return 0.0
 
 
 @jit(nopython=True)
 def _B1_GT_1(x):
     # B1.GT_1: gt(1.0)
-    return 1.0 if x > 1.0 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x > 1.0 else 0.0
+    x1 = 1.0 - 0.0
+    x2 = 1.0 + 0.0
+    if x <= x1:
+        return 0.0
+    if x <= x2:
+        return (x - x1) / (x2 - x1)
+    return 1.0
 
 
 @jit(nopython=True)
 def _B2_GT_0(x):
     # B2.GT_0: gt(0.0)
-    return 1.0 if x > 0.0 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x > 0.0 else 0.0
+    x1 = 0.0 - 0.0
+    x2 = 0.0 + 0.0
+    if x <= x1:
+        return 0.0
+    if x <= x2:
+        return (x - x1) / (x2 - x1)
+    return 1.0
 
 
 @jit(nopython=True)
 def _B3_LT_005(x):
     # B3.LT_005: lt(0.05)
-    return 1.0 if x < 0.05 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x < 0.05 else 0.0
+    x1 = 0.05 - 0.0
+    x2 = 0.05 + 0.0
+    if x <= x1:
+        return 1.0
+    if x <= x2:
+        return 1.0 - (x - x1) / (x2 - x1)
+    return 0.0
 
 
 @jit(nopython=True)
 def _B3_LT_01(x):
     # B3.LT_01: lt(0.1)
-    return 1.0 if x < 0.1 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x < 0.1 else 0.0
+    x1 = 0.1 - 0.0
+    x2 = 0.1 + 0.0
+    if x <= x1:
+        return 1.0
+    if x <= x2:
+        return 1.0 - (x - x1) / (x2 - x1)
+    return 0.0
 
 
 @jit(nopython=True)
 def _B3_LT_015(x):
     # B3.LT_015: lt(0.15)
-    return 1.0 if x < 0.15 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x < 0.15 else 0.0
+    x1 = 0.15 - 0.0
+    x2 = 0.15 + 0.0
+    if x <= x1:
+        return 1.0
+    if x <= x2:
+        return 1.0 - (x - x1) / (x2 - x1)
+    return 0.0
 
 
 @jit(nopython=True)
 def _B3_LT_02(x):
     # B3.LT_02: lt(0.2)
-    return 1.0 if x < 0.2 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x < 0.2 else 0.0
+    x1 = 0.2 - 0.0
+    x2 = 0.2 + 0.0
+    if x <= x1:
+        return 1.0
+    if x <= x2:
+        return 1.0 - (x - x1) / (x2 - x1)
+    return 0.0
 
 
 @jit(nopython=True)
 def _B4_NODATA(x):
     # B4.NODATA: eq(0.0)
-    return 1.0 if x == 0.0 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x == 0.0 else 0.0
+    x1 = 0.0 - 0.0
+    x2 = 0.0
+    x3 = 0.0 + 0.0
+    if x <= x1:
+        return 0.0
+    if x <= x2:
+        return (x - x1) / (x2 - x1)
+    if x <= x3:
+        return 1.0 - (x - x2) / (x3 - x2)
+    return 0.0
 
 
 @jit(nopython=True)
 def _B5_LT_01(x):
     # B5.LT_01: lt(0.1)
-    return 1.0 if x < 0.1 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x < 0.1 else 0.0
+    x1 = 0.1 - 0.0
+    x2 = 0.1 + 0.0
+    if x <= x1:
+        return 1.0
+    if x <= x2:
+        return 1.0 - (x - x1) / (x2 - x1)
+    return 0.0
 
 
 @jit(nopython=True)
 def _B7_LT_05(x):
     # B7.LT_05: lt(0.5)
-    return 1.0 if x < 0.5 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x < 0.5 else 0.0
+    x1 = 0.5 - 0.0
+    x2 = 0.5 + 0.0
+    if x <= x1:
+        return 1.0
+    if x <= x2:
+        return 1.0 - (x - x1) / (x2 - x1)
+    return 0.0
 
 
 @jit(nopython=True)
 def _B8_GT_0(x):
     # B8.GT_0: gt(0.0)
-    return 1.0 if x > 0.0 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x > 0.0 else 0.0
+    x1 = 0.0 - 0.0
+    x2 = 0.0 + 0.0
+    if x <= x1:
+        return 0.0
+    if x <= x2:
+        return (x - x1) / (x2 - x1)
+    return 1.0
 
 
 @jit(nopython=True)
 def _B8_LT_009(x):
     # B8.LT_009: lt(0.09)
-    return 1.0 if x < 0.09 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x < 0.09 else 0.0
+    x1 = 0.09 - 0.0
+    x2 = 0.09 + 0.0
+    if x <= x1:
+        return 1.0
+    if x <= x2:
+        return 1.0 - (x - x1) / (x2 - x1)
+    return 0.0
 
 
 @jit(nopython=True)
 def _B8_GT_033(x):
     # B8.GT_033: gt(0.33)
-    return 1.0 if x > 0.33 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x > 0.33 else 0.0
+    x1 = 0.33 - 0.0
+    x2 = 0.33 + 0.0
+    if x <= x1:
+        return 0.0
+    if x <= x2:
+        return (x - x1) / (x2 - x1)
+    return 1.0
 
 
 @jit(nopython=True)
 def _B8_GT_035(x):
     # B8.GT_035: gt(0.35)
-    return 1.0 if x > 0.35 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x > 0.35 else 0.0
+    x1 = 0.35 - 0.0
+    x2 = 0.35 + 0.0
+    if x <= x1:
+        return 0.0
+    if x <= x2:
+        return (x - x1) / (x2 - x1)
+    return 1.0
 
 
 @jit(nopython=True)
 def _B8_GT_04(x):
     # B8.GT_04: gt(0.4)
-    return 1.0 if x > 0.4 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x > 0.4 else 0.0
+    x1 = 0.4 - 0.0
+    x2 = 0.4 + 0.0
+    if x <= x1:
+        return 0.0
+    if x <= x2:
+        return (x - x1) / (x2 - x1)
+    return 1.0
 
 
 @jit(nopython=True)
 def _B8_GT_045(x):
     # B8.GT_045: gt(0.45)
-    return 1.0 if x > 0.45 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x > 0.45 else 0.0
+    x1 = 0.45 - 0.0
+    x2 = 0.45 + 0.0
+    if x <= x1:
+        return 0.0
+    if x <= x2:
+        return (x - x1) / (x2 - x1)
+    return 1.0
 
 
 @jit(nopython=True)
 def _B8_LT_085(x):
     # B8.LT_085: lt(0.85)
-    return 1.0 if x < 0.85 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x < 0.85 else 0.0
+    x1 = 0.85 - 0.0
+    x2 = 0.85 + 0.0
+    if x <= x1:
+        return 1.0
+    if x <= x2:
+        return 1.0 - (x - x1) / (x2 - x1)
+    return 0.0
 
 
 @jit(nopython=True)
 def _B16_GT_0(x):
     # B16.GT_0: gt(0.0)
-    return 1.0 if x > 0.0 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x > 0.0 else 0.0
+    x1 = 0.0 - 0.0
+    x2 = 0.0 + 0.0
+    if x <= x1:
+        return 0.0
+    if x <= x2:
+        return (x - x1) / (x2 - x1)
+    return 1.0
 
 
 @jit(nopython=True)
 def _B19_GT_015(x):
     # B19.GT_015: gt(0.15)
-    return 1.0 if x > 0.15 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x > 0.15 else 0.0
+    x1 = 0.15 - 0.0
+    x2 = 0.15 + 0.0
+    if x <= x1:
+        return 0.0
+    if x <= x2:
+        return (x - x1) / (x2 - x1)
+    return 1.0
 
 
 @jit(nopython=True)
 def _BSum_GT_011(x):
     # BSum.GT_011: gt(0.11)
-    return 1.0 if x > 0.11 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x > 0.11 else 0.0
+    x1 = 0.11 - 0.0
+    x2 = 0.11 + 0.0
+    if x <= x1:
+        return 0.0
+    if x <= x2:
+        return (x - x1) / (x2 - x1)
+    return 1.0
 
 
 @jit(nopython=True)
 def _BSum_GT_013(x):
     # BSum.GT_013: gt(0.13)
-    return 1.0 if x > 0.13 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x > 0.13 else 0.0
+    x1 = 0.13 - 0.0
+    x2 = 0.13 + 0.0
+    if x <= x1:
+        return 0.0
+    if x <= x2:
+        return (x - x1) / (x2 - x1)
+    return 1.0
 
 
 @jit(nopython=True)
 def _BSum_GT_016(x):
     # BSum.GT_016: gt(0.16)
-    return 1.0 if x > 0.16 else 0.0
+    if 0.0 == 0.0:
+        return 1.0 if x > 0.16 else 0.0
+    x1 = 0.16 - 0.0
+    x2 = 0.16 + 0.0
+    if x <= x1:
+        return 0.0
+    if x <= x2:
+        return (x - x1) / (x2 - x1)
+    return 1.0
 
 
 @jit(nopython=True)

@@ -121,6 +121,6 @@ def apply_rules(input, output):
     #        dark = TRUE
     output.dark = t1
     #    else:
-    t1 = np.minimum(t0, 1.0 - (t1))
+    t1 = np.minimum(t0, 1.0 - t1)
     #        not_dark = TRUE
     output.not_dark = t1
