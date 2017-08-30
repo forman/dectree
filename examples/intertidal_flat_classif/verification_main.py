@@ -2,10 +2,18 @@ import time
 
 import numpy as np
 import pandas as pd
-from intertidal_flat_classif_opt import Input, Output, apply_rules
+#from intertidal_flat_classif import Input, Output, apply_rules
+#from intertidal_flat_classif_opt import Input, Output, apply_rules
+from intertidal_flat_classif_fuz import Input, Output, apply_rules
 
-input_frame = pd.read_csv("verification_input.txt", delimiter='\t', skip_blank_lines=True, comment='#')
-output_frame = pd.read_csv("verification_expected.txt", delimiter='\t', skip_blank_lines=True, comment='#')
+INPUT_TXT = "verification_input.txt"
+EXPECTED_TXT = "verification_expected.txt"
+#OUTPUT_TXT = "verification_output.txt"
+#OUTPUT_TXT = "verification_output_opt.txt"
+OUTPUT_TXT = "verification_output_fuz.txt"
+
+input_frame = pd.read_csv(INPUT_TXT, delimiter='\t', skip_blank_lines=True, comment='#')
+output_frame = pd.read_csv(EXPECTED_TXT, delimiter='\t', skip_blank_lines=True, comment='#')
 
 input_frame.sort_values(by="Label")
 output_frame.sort_values(by="Label")
@@ -77,7 +85,7 @@ frame = pd.DataFrame.from_items(zip(['expected_class'] + [output_name for output
                                     [expected_class] + [getattr(dectree_output, output_name) for output_name in
                                                         output_names]))
 
-frame.to_csv(path_or_buf="verification_output.txt", sep='\t')
+frame.to_csv(path_or_buf=OUTPUT_TXT, sep='\t')
 
 
 # Performance check:

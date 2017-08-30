@@ -1,0 +1,108 @@
+# From Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\klassifikation\dec_tree_wattklassen_l8_20160510_SH_L8_megarippel_server.txt
+
+options:
+  vectorize: func
+  types: true
+
+types:
+  B1:
+    B1_veg:               lt(0.85, dx=0.05)
+    B1_strand:            gt(1.00, dx=0.10)
+  B2:
+    B2_schlick:           gt(0.00, dx=0.01)
+  B3:
+    B3_sand:              lt(0.05, dx=0.01)
+    B3_sand2:             lt(0.10, dx=0.01)
+    B3_misch:             lt(0.15, dx=0.01)
+    B3_schlick:           lt(0.20, dx=0.01)
+  B4:
+    B4_nodata:            eq(0.0)
+  B5:
+    B5_wasser:            lt(0.10, dx=0.05)
+  B7:
+    B7_muschel:           lt(0.50, dx=0.05)
+  B8:
+    B8_sediment_wasser:   gt(0.00, dx=0.01)
+    B8_veg_wasser:        lt(0.09, dx=0.01)
+    B8_veg:               gt(0.33, dx=0.02)
+    B8_muschel_schill:    gt(0.35, dx=0.02)
+    B8_muschel_min:       gt(0.40, dx=0.02)
+    B8_veg_dicht:         gt(0.45, dx=0.02)
+    B8_muschel_max:       lt(0.85, dx=0.02)
+  B16:
+    B16_sediment_wasser:  gt(0.00, dx=0.01)
+  B19:
+    B19_muschel:          gt(0.15, dx=0.01)
+  BSum:
+    BSum_schill_1:        gt(0.11, dx=0.02)
+    BSum_schill_1a:       gt(0.13, dx=0.02)
+    BSum_schill_2:        gt(0.16, dx=0.01)
+
+  Class:
+    "FALSE":  false()
+    "TRUE":   true()
+
+inputs:
+  - b1:   B1
+  - b2:   B2
+  - b3:   B3
+  - b4:   B4
+  - b5:   B5
+  - b6:   B6
+  - b7:   B7
+  - b8:   B8
+  - b12:  B12
+  - b13:  B13
+  - b14:  B14
+  - b15:  B15
+  - b16:  B16
+  - b19:  B19
+  - b100: B100
+  # b12+b13+b14
+  - bsum: BSum
+
+outputs:
+  - nodata:    Class
+  - Wasser:    Class
+  - Schill:    Class
+  - Muschel:   Class
+  - dense2:    Class
+  - dense1:    Class
+  - Strand:    Class
+  - Sand:      Class
+  - Misch:     Class
+  - Misch2:    Class
+  - Schlick:   Class
+  - schlick_t: Class
+  - Wasser2:   Class
+
+rules:
+  - |
+    if b4 is B4_nodata:
+      nodata = TRUE
+    else if (b8 is B8_veg and b1 is B1_veg) or b8 is B8_veg_wasser:
+      if b5 is B5_wasser:
+        Wasser = TRUE
+      else if (b19 is B19_muschel and (b8 is B8_muschel_min and b8 is B8_muschel_max) and b7 is B7_muschel) or (b8 is B8_muschel_min and bsum is BSum_schill_1) or (b8 is B8_muschel_schill and bsum is BSum_schill_2):
+        if bsum is BSum_schill_1a:
+          Schill = TRUE
+        else:
+          Muschel = TRUE
+      else if b8 is B8_veg_dicht:
+        dense2 = TRUE
+      else:
+        dense1 = TRUE
+    else if b1 is B1_strand:
+      Strand = TRUE
+    else if b3 is B3_sand:
+      Sand = TRUE
+    else if b3 is B3_sand2 and b8 is B8_sediment_wasser:
+      Misch = TRUE
+    else if b3 is B3_misch and b8 is B8_sediment_wasser:
+      Misch2 = TRUE
+    else if b3 is B3_schlick and b2 is B2_schlick and b8 is B8_sediment_wasser:
+      Schlick = TRUE
+    else if b16 is B16_sediment_wasser and b8 is B8_sediment_wasser:
+      schlick_t = TRUE
+    else:
+      Wasser2 = TRUE
