@@ -2,7 +2,7 @@ import unittest
 import os.path
 import numpy as np
 from dectree.codegen import VECTORIZE_PROP, ExprGen
-from dectree.transpiler import transpile
+from dectree.transpiler import transpile, compile
 from io import StringIO
 
 
@@ -110,11 +110,11 @@ class TranspileTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_file))
         m = __import__('test.dectree_test')
         self.assertTrue(hasattr(m, 'dectree_test'))
-        self.assertTrue(hasattr(m.dectree_test, 'Input'))
-        self.assertTrue(hasattr(m.dectree_test, 'Output'))
+        self.assertTrue(hasattr(m.dectree_test, 'Inputs'))
+        self.assertTrue(hasattr(m.dectree_test, 'Outputs'))
         self.assertTrue(hasattr(m.dectree_test, 'apply_rules'))
-        inputs = m.dectree_test.Input()
-        outputs = m.dectree_test.Output()
+        inputs = m.dectree_test.Inputs()
+        outputs = m.dectree_test.Outputs()
 
         inputs.glint = 0.2
         inputs.radiance = 60.
@@ -131,12 +131,12 @@ class TranspileTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_file))
         m = __import__('test.dectree_test_p')
         self.assertTrue(hasattr(m, 'dectree_test_p'))
-        self.assertTrue(hasattr(m.dectree_test_p, 'Input'))
-        self.assertTrue(hasattr(m.dectree_test_p, 'Output'))
+        self.assertTrue(hasattr(m.dectree_test_p, 'Inputs'))
+        self.assertTrue(hasattr(m.dectree_test_p, 'Outputs'))
         self.assertTrue(hasattr(m.dectree_test_p, 'Params'))
         self.assertTrue(hasattr(m.dectree_test_p, 'apply_rules'))
-        inputs = m.dectree_test_p.Input()
-        outputs = m.dectree_test_p.Output()
+        inputs = m.dectree_test_p.Inputs()
+        outputs = m.dectree_test_p.Outputs()
         params = m.dectree_test_p.Params()
 
         inputs.glint = 0.2
@@ -154,17 +154,17 @@ class TranspileTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_file))
         m = __import__('test.dectree_test_v')
         self.assertTrue(hasattr(m, 'dectree_test_v'))
-        self.assertTrue(hasattr(m.dectree_test_v, 'Input'))
-        self.assertTrue(hasattr(m.dectree_test_v, 'Output'))
+        self.assertTrue(hasattr(m.dectree_test_v, 'Inputs'))
+        self.assertTrue(hasattr(m.dectree_test_v, 'Outputs'))
         self.assertTrue(hasattr(m.dectree_test_v, 'apply_rules'))
-        input = m.dectree_test_v.Input()
-        output = m.dectree_test_v.Output()
+        inputs = m.dectree_test_v.Inputs()
+        outputs = m.dectree_test_v.Outputs()
 
-        input.glint = np.array([0.2, 0.3])
-        input.radiance = np.array([60.0, 10.0])
-        m.dectree_test_v.apply_rules(input, output)
-        np.testing.assert_almost_equal(output.cloudy, np.array([0.6, 0.0]))
-        np.testing.assert_almost_equal(output.certain, np.array([1.0, 1.0]))
+        inputs.glint = np.array([0.2, 0.3])
+        inputs.radiance = np.array([60.0, 10.0])
+        m.dectree_test_v.apply_rules(inputs, outputs)
+        np.testing.assert_almost_equal(outputs.cloudy, np.array([0.6, 0.0]))
+        np.testing.assert_almost_equal(outputs.certain, np.array([1.0, 1.0]))
 
 
 def eval_func(f, x):
@@ -266,3 +266,36 @@ class ConditionTranspilerTest(unittest.TestCase):
         with self.assertRaises(SyntaxError) as cm:
             expr_gen.gen_expr('x && HI')
         self.assertTrue(str(cm.exception) != '')
+
+
+    def test_compile_with_defaults(self):
+        src_file = os.path.join(os.path.dirname(__file__), 'dectree_test.yml')
+        apply_rules, Inputs, Outputs = compile(src_file)
+        self.assertIsNotNone(apply_rules)
+        self.assertIsNotNone(Inputs)
+        self.assertIsNotNone(Outputs)
+        inputs = Inputs()
+        outputs = Outputs()
+
+        inputs.glint = 0.2
+        inputs.radiance = 60.
+        apply_rules(inputs, outputs)
+        self.assertAlmostEqual(outputs.cloudy, 0.6)
+        self.assertAlmostEqual(outputs.certain, 1.0)
+
+    def test_compile_parameterized(self):
+        src_file = os.path.join(os.path.dirname(__file__), 'dectree_test.yml')
+        apply_rules, Inputs, Outputs, Params = compile(src_file, parameterize=True)
+        self.assertIsNotNone(apply_rules)
+        self.assertIsNotNone(Inputs)
+        self.assertIsNotNone(Outputs)
+        self.assertIsNotNone(Params)
+        inputs = Inputs()
+        outputs = Outputs()
+        params = Params()
+
+        inputs.glint = 0.2
+        inputs.radiance = 60.
+        apply_rules(inputs, outputs, params)
+        self.assertAlmostEqual(outputs.cloudy, 0.6)
+        self.assertAlmostEqual(outputs.certain, 1.0)

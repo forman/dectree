@@ -57,6 +57,17 @@ class YamlTest(unittest.TestCase):
                           {'else':
                                ['out = False']}])
 
+        self.assertEqual(_to_omap(raw_rule, recursive=True),
+                         OrderedDict([('if a is HI',
+                                       OrderedDict([('if b is LO',
+                                                     ['out = True']),
+                                                    ('else if a is LOW',
+                                                     ['out = 0.5'])])),
+                                      ('else if c is MID',
+                                       ['out = 0.6']),
+                                      ('else',
+                                       ['out = False'])]))
+
         rule_code_2 = yaml.load(StringIO(text_2))
         self.assertEqual(raw_rule, rule_code_2)
 
@@ -69,7 +80,7 @@ class YamlTest(unittest.TestCase):
                              [('=', 'out', '0.5')])]),
                           ('elif', 'c is MID',
                            [('=', 'out', '0.6')]),
-                          ('else', None,
+                          ('else',
                            [('=', 'out', 'False')])])
 
     def test_omap(self):

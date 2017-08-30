@@ -4,61 +4,12 @@ from io import StringIO
 from typing import List, Dict, Any, Tuple, Optional
 
 import dectree.propfuncs as propfuncs
+from dectree.config import CONFIG_NAME_INPUTS_NAME, CONFIG_NAME_OUTPUTS_NAME, CONFIG_NAME_PARAMS_NAME
+from .config import get_config_value, \
+    CONFIG_NAME_VECTORIZE, CONFIG_NAME_PARAMETERIZE, CONFIG_NAME_FUNCTION_NAME, CONFIG_NAME_TYPES, VECTORIZE_FUNC, \
+    VECTORIZE_PROP, CONFIG_DEFAULTS, CONFIG_NAME_OR_PATTERN, CONFIG_NAME_NOT_PATTERN, \
+    CONFIG_NAME_NO_JIT, VECTORIZE_NONE, CONFIG_NAME_AND_PATTERN
 from .types import VarName, PropName, TypeName, PropDef, TypeDefs, VarDefs, PropFuncParamName
-
-PARAMS_CLASS_NAME = 'Params'
-
-OUTPUT_CLASS_NAME = 'Output'
-
-INPUT_CLASS_NAME = 'Input'
-
-CONFIG_NAME_OR_PATTERN = 'or_pattern'
-CONFIG_NAME_AND_PATTERN = 'and_pattern'
-CONFIG_NAME_NOT_PATTERN = 'not_pattern'
-CONFIG_NAME_FUNCTION_NAME = 'func_name'
-CONFIG_NAME_TYPES = 'types'
-CONFIG_NAME_NO_JIT = 'no_jit'
-CONFIG_NAME_VECTORIZE = 'vectorize'
-CONFIG_NAME_PARAMETERIZE = 'parameterize'
-
-VECTORIZE_NONE = 'off'
-VECTORIZE_PROP = 'prop'
-VECTORIZE_FUNC = 'func'
-
-VECTORIZE_CHOICES = [VECTORIZE_NONE, VECTORIZE_PROP, VECTORIZE_FUNC]
-
-CONFIG_DEFAULTS = {
-    CONFIG_NAME_OR_PATTERN:
-        ['max({x}, {y})',
-         'pattern to translate "x or y" expressions; default is "{default}"', None],
-    CONFIG_NAME_AND_PATTERN:
-        ['min({x}, {y})',
-         'pattern to translate "x and y" expressions; default is "{default}"', None],
-    CONFIG_NAME_NOT_PATTERN:
-        ['1.0 - ({x})',
-         'pattern to translate "not x" expressions; default is "{default}"', None],
-    CONFIG_NAME_FUNCTION_NAME:
-        ['apply_rules',
-         'name of the generated function which implements the decision tree; default is "{default}"', None],
-    CONFIG_NAME_TYPES:
-        [False,
-         'whether to use Python 3.3+ type annotations in generated code; off by default', None],
-    CONFIG_NAME_NO_JIT:
-        [False,
-         'whether to disable just-in-time-compilation (JIT) using Numba in generated code; JIT is on by default',
-         None],
-    CONFIG_NAME_PARAMETERIZE:
-        [False,
-         'whether to generate parameterized fuzzy sets, so thresholds can be changed later; off by default',
-         None],
-    CONFIG_NAME_VECTORIZE:
-        [VECTORIZE_NONE,
-         'whether to generated vectorized functions for Numpy arrays; '
-         '"' + VECTORIZE_PROP + '" vectorizes membership functions (requires Numba), '
-                                '"' + VECTORIZE_FUNC + '" vectorizes the decision tree function; '
-                                                       'default is "{default}"',
-         VECTORIZE_CHOICES],
-}
 
 
 def gen_code(type_defs,
@@ -106,14 +57,14 @@ class CodeGen:
         self.output_assignments = {}
         self._write_imports()
         self._write_type_prop_functions()
-        self._write_io_class(self.input_defs, 'Input')
-        self._write_io_class(self.output_defs, 'Output')
+        self._write_inputs_class()
+        self._write_outputs_class()
         self._write_params()
         self._write_apply_rules_function()
 
     def _write_imports(self):
-        no_jit = _get_config_value(self.options, CONFIG_NAME_NO_JIT)
-        vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
+        no_jit = self._get_config_value(CONFIG_NAME_NO_JIT)
+        vectorize = self._get_config_value(CONFIG_NAME_VECTORIZE)
 
         numba_import = 'from numba import jit, jitclass, float64'
         numpy_import = 'import numpy as np'
@@ -130,7 +81,7 @@ class CodeGen:
                 self._write_lines('', numba_import)
 
     def _write_type_prop_functions(self):
-        parameterize = _get_config_value(self.options, CONFIG_NAME_PARAMETERIZE)
+        parameterize = self._get_config_value(CONFIG_NAME_PARAMETERIZE)
         numba_decorator = self._get_numba_decorator(prop_func=True)
         for type_name, type_def in self.type_defs.items():
             for prop_name, prop_def in type_def.items():
@@ -150,18 +101,18 @@ class CodeGen:
                                   *func_body_lines)
 
     def _write_apply_rules_function(self):
-        vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
-        parameterize = _get_config_value(self.options, CONFIG_NAME_PARAMETERIZE)
-        function_name = _get_config_value(self.options, CONFIG_NAME_FUNCTION_NAME)
+        vectorize = self._get_config_value(CONFIG_NAME_VECTORIZE)
+        parameterize = self._get_config_value(CONFIG_NAME_PARAMETERIZE)
+        function_name = self._get_config_value(CONFIG_NAME_FUNCTION_NAME)
         if parameterize:
-            function_params = [('input', INPUT_CLASS_NAME),
-                               ('output', OUTPUT_CLASS_NAME),
-                               ('params', PARAMS_CLASS_NAME)]
+            function_params = [('input', self._get_config_value(CONFIG_NAME_INPUTS_NAME)),
+                               ('output', self._get_config_value(CONFIG_NAME_OUTPUTS_NAME)),
+                               ('params', self._get_config_value(CONFIG_NAME_PARAMS_NAME))]
         else:
-            function_params = [('input', INPUT_CLASS_NAME),
-                               ('output', OUTPUT_CLASS_NAME)]
+            function_params = [('input', self._get_config_value(CONFIG_NAME_INPUTS_NAME)),
+                               ('output', self._get_config_value(CONFIG_NAME_OUTPUTS_NAME))]
 
-        type_annotations = _get_config_value(self.options, CONFIG_NAME_TYPES)
+        type_annotations = get_config_value(self.options, CONFIG_NAME_TYPES)
         if type_annotations:
             function_args = ', '.join(['{}: {}'.format(param_name, param_type)
                                        for param_name, param_type in function_params])
@@ -185,21 +136,27 @@ class CodeGen:
             self._write_rule(rule, 1, 1)
 
     def _get_numba_decorator(self, prop_func=False):
-        vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
+        vectorize = self._get_config_value(CONFIG_NAME_VECTORIZE)
         if vectorize == VECTORIZE_PROP and prop_func:
             numba_decorator = '@vectorize([float64(float64)])'
         else:
             numba_decorator = '@jit(nopython=True)'
-        no_jit = _get_config_value(self.options, CONFIG_NAME_NO_JIT)
+        no_jit = get_config_value(self.options, CONFIG_NAME_NO_JIT)
         if no_jit:
             numba_decorator = '# ' + numba_decorator
         return numba_decorator
 
-    def _write_io_class(self, var_defs, type_name):
+    def _write_io_class(self, type_name, var_defs):
         self._write_class(type_name, var_defs.keys())
 
+    def _write_inputs_class(self):
+        self._write_io_class(self._get_config_value(CONFIG_NAME_INPUTS_NAME), self.input_defs)
+
+    def _write_outputs_class(self):
+        self._write_io_class(self._get_config_value(CONFIG_NAME_OUTPUTS_NAME), self.output_defs)
+
     def _write_params(self):
-        parameterize = _get_config_value(self.options, CONFIG_NAME_PARAMETERIZE)
+        parameterize = self._get_config_value(CONFIG_NAME_PARAMETERIZE)
         if not parameterize:
             return
         param_names = []
@@ -211,12 +168,12 @@ class CodeGen:
                     qualified_param_name = _get_qualified_param_name(type_name, prop_name, param_name)
                     param_names.append(qualified_param_name)
                     param_values[qualified_param_name] = param_value
-        self._write_class('Params', param_names, param_values)
+        self._write_class(self._get_config_value(CONFIG_NAME_PARAMS_NAME), param_names, param_values)
 
     def _write_class(self, class_name, var_names, param_values: Optional[Dict[str, Any]] = None):
-        no_jit = _get_config_value(self.options, CONFIG_NAME_NO_JIT)
-        vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
-        types = _get_config_value(self.options, CONFIG_NAME_TYPES)
+        no_jit = self._get_config_value(CONFIG_NAME_NO_JIT)
+        vectorize = self._get_config_value(CONFIG_NAME_VECTORIZE)
+        types = self._get_config_value(CONFIG_NAME_TYPES)
         is_io = param_values is None
 
         spec_name = '_{}Spec'.format(class_name)
@@ -272,14 +229,19 @@ class CodeGen:
                 sub_target_level += 1
                 self._write_stmt(keyword, stmt[1], stmt[2], source_level, sub_target_level)
             elif keyword == 'else':
-                self._write_stmt(keyword, stmt[1], stmt[2], source_level, sub_target_level)
+                self._write_stmt(keyword, None, stmt[1], source_level, sub_target_level)
             elif keyword == '=':
                 self._write_assignment(stmt[1], stmt[2], source_level, sub_target_level)
             else:
                 raise NotImplemented
 
-    def _write_stmt(self, keyword: str, condition_expr: str, body: List, source_level: int, target_level: int):
-        vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
+    def _write_stmt(self,
+                    keyword: str,
+                    condition_expr: Optional[str],
+                    body: List,
+                    source_level: int,
+                    target_level: int):
+        vectorize = self._get_config_value(CONFIG_NAME_VECTORIZE)
         and_pattern = _get_config_op_pattern(self.options, CONFIG_NAME_AND_PATTERN)
         not_pattern = '1.0 - {x}'  # _get_config_op_pattern(self.options, CONFIG_NAME_NOT_PATTERN)
 
@@ -289,33 +251,30 @@ class CodeGen:
         else:
             target_indent = 4 * ' '
 
+        t0 = 't' + str(target_level - 1)
+        t1 = 't' + str(target_level - 0)
+
         if keyword == 'if' or keyword == 'elif':
             condition = self.expr_gen.gen_expr(condition_expr)
             if keyword == 'if':
-                t0 = 't' + str(target_level - 1)
-                t1 = 't' + str(target_level - 0)
                 self._write_lines('{tind}#{sind}{key} {expr}:'.format(tind=target_indent, sind=source_indent,
                                                                       key=keyword, expr=condition_expr))
                 target_value = and_pattern.format(x=t0, y=condition)
             else:
                 tp = 't' + str(target_level - 2)
-                t0 = 't' + str(target_level - 1)
-                t1 = 't' + str(target_level - 0)
                 self._write_lines('{tind}#{sind}{key} {expr}:'.format(tind=target_indent, sind=source_indent,
                                                                       key=keyword, expr=condition_expr))
                 target_value = and_pattern.format(x=tp, y=not_pattern.format(x=t0))
                 self._write_lines('{tind}{tvar} = {tval}'.format(tind=target_indent, tvar=t0, tval=target_value))
                 target_value = and_pattern.format(x=t0, y=condition)
         else:
-            t0 = 't' + str(target_level - 1)
-            t1 = 't' + str(target_level - 0)
             self._write_lines('{tind}#{sind}else:'.format(tind=target_indent, sind=source_indent))
             target_value = and_pattern.format(x=t0, y=not_pattern.format(x=t1))
         self._write_lines('{tind}{tvar} = {tval}'.format(tind=target_indent, tvar=t1, tval=target_value))
         self._write_rule(body, source_level + 1, target_level + 1)
 
     def _write_assignment(self, var_name: str, var_value: str, source_level: int, target_level: int):
-        vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
+        vectorize = self._get_config_value(CONFIG_NAME_VECTORIZE)
         or_pattern = _get_config_op_pattern(self.options, CONFIG_NAME_OR_PATTERN)
         not_pattern = _get_config_op_pattern(self.options, CONFIG_NAME_NOT_PATTERN)
 
@@ -367,6 +326,9 @@ class CodeGen:
         for line in lines:
             self.out_file.write('%s\n' % line)
 
+    def _get_config_value(self, name):
+        return get_config_value(self.options, name)
+
 
 class ExprGen:
     def __init__(self,
@@ -389,7 +351,7 @@ class ExprGen:
 
     def _transpile_expression(self, expr) -> str:
         if isinstance(expr, ast.Compare):
-            vectorize = _get_config_value(self.options, CONFIG_NAME_VECTORIZE)
+            vectorize = get_config_value(self.options, CONFIG_NAME_VECTORIZE)
 
             left = expr.left
             if not isinstance(left, ast.Name):
@@ -412,7 +374,7 @@ class ExprGen:
                 raise ValueError('"==", "!=", "is", and "is not" are the only supported comparison operators')
             type_name, prop_def = _get_type_name_and_prop_def(var_name, prop_name, self.type_defs, self.var_defs)
             _, func_params, _ = prop_def
-            parameterize = _get_config_value(self.options, CONFIG_NAME_PARAMETERIZE)
+            parameterize = get_config_value(self.options, CONFIG_NAME_PARAMETERIZE)
             if parameterize and func_params:
                 params = ', ' + ', '.join(['{p}=params.{qp}'.format(p=param_name,
                                                                     qp=_get_qualified_param_name(type_name,
@@ -455,23 +417,6 @@ class ExprGen:
         raise ValueError('Unsupported expression')
 
 
-def _get_config_value(config, name):
-    assert name in CONFIG_DEFAULTS
-    if name in config:
-        return config[name]
-    return CONFIG_DEFAULTS[name][0]
-
-
-def _get_config_op_pattern(options, op_pattern_name):
-    op_pattern = _get_config_value(options, op_pattern_name)
-    no_jit = _get_config_value(options, 'no_jit')
-    vectorize = _get_config_value(options, 'vectorize')
-    if not no_jit and vectorize == VECTORIZE_PROP:
-        return op_pattern.replace('min(', 'np.minimum(').replace('max(', 'np.maximum(')
-    else:
-        return op_pattern
-
-
 def _types_to_type_defs(types: Dict[str, Dict[str, str]]) -> TypeDefs:
     type_defs = OrderedDict()
     for type_name, type_properties in types.items():
@@ -509,3 +454,13 @@ def _get_qualified_param_name(type_name: TypeName,
                               prop_name: PropName,
                               param_name: PropFuncParamName) -> str:
     return '{t}_{p}_{k}'.format(t=type_name, p=prop_name, k=param_name)
+
+
+def _get_config_op_pattern(options, op_pattern_name):
+    op_pattern = get_config_value(options, op_pattern_name)
+    no_jit = get_config_value(options, CONFIG_NAME_NO_JIT)
+    vectorize = get_config_value(options, CONFIG_NAME_VECTORIZE)
+    if not no_jit and vectorize == VECTORIZE_PROP:
+        return op_pattern.replace('min(', 'np.minimum(').replace('max(', 'np.maximum(')
+    else:
+        return op_pattern

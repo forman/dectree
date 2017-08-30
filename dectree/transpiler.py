@@ -1,5 +1,6 @@
 import os.path
 from collections import OrderedDict
+from io import StringIO
 from typing import List, Dict, Any, Tuple, Union
 
 # noinspection PyPackageRequirements
@@ -7,7 +8,29 @@ import yaml  # from pyyaml
 
 import dectree.propfuncs as propfuncs
 from .codegen import gen_code
+from .config import CONFIG_NAME_FUNCTION_NAME, CONFIG_NAME_INPUTS_NAME, CONFIG_NAME_OUTPUTS_NAME, \
+    CONFIG_NAME_PARAMS_NAME, CONFIG_NAME_PARAMETERIZE, get_config_value
 from .types import TypeDefs
+
+_builtin_compile = compile
+
+
+def compile(src_file, **options: Dict[str, Any]) -> Tuple[Any, ...]:
+    text_io = StringIO()
+    transpile(src_file, text_io, **options)
+
+    py_code = text_io.getvalue()
+    local_vars = {}
+
+    compiled_py_code = _builtin_compile(py_code, '<string>', 'exec')
+    exec(compiled_py_code, None, local_vars)
+
+    names = [CONFIG_NAME_FUNCTION_NAME, CONFIG_NAME_INPUTS_NAME, CONFIG_NAME_OUTPUTS_NAME]
+    if get_config_value(options, CONFIG_NAME_PARAMETERIZE):
+        names += [CONFIG_NAME_PARAMS_NAME]
+    names = [get_config_value(options, name) for name in names]
+
+    return tuple(local_vars[name] for name in names)
 
 
 def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
@@ -45,14 +68,14 @@ def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
             raise ValueError("Invalid decision tree definition: section '{}' is empty".format(section))
 
     types = _normalize_types(_to_omap(src_code['types'], recursive=True))
-    inputs = _to_omap(src_code['inputs'])
-    outputs = _to_omap(src_code['outputs'])
+    input_defs = _to_omap(src_code['inputs'])
+    output_defs = _to_omap(src_code['outputs'])
     rules = _normalize_rules(src_code['rules'])
 
     src_options = dict(src_code.get('options') or {})
     src_options.update(options or {})
 
-    py_code = gen_code(types, inputs, outputs, rules, **src_options)
+    py_code = gen_code(types, input_defs, output_defs, rules, **src_options)
 
     if out_file:
         try:
@@ -109,44 +132,47 @@ def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) -> List[Union[Tuple, List
     for i in range(n):
         item = raw_rule[i]
 
-        if_stmt_part, if_stmt_body, assignment = None, None, None
+        stmt_part, stmt_body, assignment = None, None, None
         if isinstance(item, dict):
-            if_stmt_part, if_stmt_body = dict(item).popitem()
+            stmt_part, stmt_body = dict(item).popitem()
         else:
             assignment = item
 
-        if if_stmt_part:
-            if_stmt_tokens = if_stmt_part.split(None, 1)
-            if len(if_stmt_tokens) == 0:
-                raise ValueError('illegal rule part: {}'.format(if_stmt_part))
+        if stmt_part:
+            stmt_tokens = stmt_part.split(None, 1)
+            if len(stmt_tokens) == 0:
+                raise ValueError('illegal rule part: {}'.format(stmt_part))
 
-            keyword = if_stmt_tokens[0]
+            keyword = stmt_tokens[0]
 
             if keyword == 'if':
                 if i != 0:
-                    raise ValueError('"if" must be first in rule: {}'.format(if_stmt_part))
-                if len(if_stmt_tokens) != 2 or not if_stmt_tokens[1]:
-                    raise ValueError('illegal rule part: {}'.format(if_stmt_part))
-                condition = if_stmt_tokens[1]
+                    raise ValueError('"if" must be first in rule: {}'.format(stmt_part))
+                if len(stmt_tokens) != 2 or not stmt_tokens[1]:
+                    raise ValueError('illegal rule part: {}'.format(stmt_part))
+                condition = stmt_tokens[1]
             elif keyword == 'else':
-                if len(if_stmt_tokens) == 1:
+                if len(stmt_tokens) == 1:
                     if i < n - 2:
-                        raise ValueError('"else" must be last in rule: {}'.format(if_stmt_part))
+                        raise ValueError('"else" must be last in rule: {}'.format(stmt_part))
                     condition = None
                 else:
-                    elif_stmt_tokens = if_stmt_tokens[1].split(None, 1)
+                    elif_stmt_tokens = stmt_tokens[1].split(None, 1)
                     if elif_stmt_tokens[0] == 'if':
                         keyword, condition = 'elif', elif_stmt_tokens[1]
                     else:
-                        raise ValueError('illegal rule part: {}'.format(if_stmt_part))
+                        raise ValueError('illegal rule part: {}'.format(stmt_part))
             elif keyword == 'elif':
-                if len(if_stmt_tokens) != 2 or not if_stmt_tokens[1]:
-                    raise ValueError('illegal rule part: {}'.format(if_stmt_part))
-                condition = if_stmt_tokens[1]
+                if len(stmt_tokens) != 2 or not stmt_tokens[1]:
+                    raise ValueError('illegal rule part: {}'.format(stmt_part))
+                condition = stmt_tokens[1]
             else:
-                raise ValueError('illegal rule part: {}'.format(if_stmt_part))
+                raise ValueError('illegal rule part: {}'.format(stmt_part))
 
-            parsed_rule.append((keyword, condition, _parse_raw_rule(if_stmt_body)))
+            if condition:
+                parsed_rule.append((keyword, condition, _parse_raw_rule(stmt_body)))
+            else:
+                parsed_rule.append((keyword, _parse_raw_rule(stmt_body)))
 
         elif assignment:
             # noinspection PyUnresolvedReferences
@@ -155,12 +181,12 @@ def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) -> List[Union[Tuple, List
                     or not assignment_parts[0].isidentifier() \
                     or assignment_parts[1] != '=' \
                     or not assignment_parts[2]:
-                raise ValueError('illegal rule part: {}'.format(if_stmt_part))
+                raise ValueError('illegal rule part: {}'.format(stmt_part))
 
             parsed_rule.append(('=', assignment_parts[0], assignment_parts[2]))
 
         else:
-            raise ValueError('illegal rule part: {}'.format(if_stmt_part))
+            raise ValueError('illegal rule part: {}'.format(stmt_part))
 
     return parsed_rule
 
