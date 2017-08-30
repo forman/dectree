@@ -4,10 +4,10 @@ options:
 types:
 
   Radiance:
-    - LOW: ramp_down(x1=0, x2=127)
+    - LOW: inv_ramp(x1=0, x2=127)
     - MIDDLE: triangular(x1=0, x2=127, x3=255)
-    - HIGH: ramp_up(x1=127, x2=255)
-    - VERY_HIGH: ramp_up(x1=180, x2=220)
+    - HIGH: ramp(x1=127, x2=255)
+    - VERY_HIGH: ramp(x1=180, x2=220)
 
   Certainty:
     - "FALSE": false()

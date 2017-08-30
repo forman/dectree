@@ -33,12 +33,18 @@ For example, the condition `x is HIGH and y is not SLOW` "fuzzifies" to `min(HIG
 
 Available membership functions are
 
-* `ramp_down(x1=0.0, x2=0.5)` - a ramp with negative slope for x in the range x1 to x2, 1 if x < x1,
-  and 0 if x > x2.
-* `ramp_up(x1=0.5, x2=1.0)` a ramp with positive slope for x in the range x1 to x2, 0 if x < x1,
+* `ramp(x1=0, x2=1)` a ramp with positive slope for x in the range x1 to x2, 0 if x < x1,
   and 1 if x > x2.
-* `triangle(x1=0.0, x2=0.5, x3=1.0)` - a ramp with positive slope for x in the range x1 to x2,
+* `triangular(x1=0, x2=0, x3=1)` - a ramp with positive slope for x in the range x1 to x2,
   a ramp with negative slope in the range x2 to x3, 0 if x < x1 or x > x3.
+* `trapezoid(x1=0, x2=1/3, x3=2/3, x4=1)` - a ramp with positive slope for x in the range x1 to x2,
+  a ramp with negative slope in the range x2 to x3, 0 if x < x1 or x > x3.
+
+The inverse of the functions above are `inv_ramp`, `inv_triangular`, `inv_trapezoid` 
+with parameters.
+
+The following are not really membership functions as they return constant truth values:
+
 * `true()` - always 1;
 * `false()` - always 0;
 * `const(t)` - always `t`.

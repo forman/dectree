@@ -14,8 +14,8 @@ def get_src(no1='false()', a='a', p1='P1', b='b', no2='NO'):
         types:
 
             P1:
-                LOW: ramp_down()
-                HIGH: ramp_up()
+                LOW: inv_ramp()
+                HIGH: ramp()
 
             P2:
                 "YES": true()
@@ -178,8 +178,8 @@ def eval_func(f, x):
 class ConditionTranspilerTest(unittest.TestCase):
     def test_transpile_success(self):
         type_defs = dict(
-            XType=dict(HI=('ramp_up()', dict(x1=0.5, x2=1.0), ''),
-                       LO=('ramp_down()', dict(x1=0.0, x2=0.5), '')),
+            XType=dict(HI=('ramp()', dict(x1=0.5, x2=1.0), ''),
+                       LO=('inv_ramp()', dict(x1=0.0, x2=0.5), '')),
             YType=dict(FAST=('true()', {}, ''),
                        SLOW=('false()', {}, ''))
         )
@@ -222,8 +222,8 @@ class ConditionTranspilerTest(unittest.TestCase):
 
     def test_transpile_failure(self):
         type_defs = dict(
-            XType=dict(HI=('ramp_up()', dict(x1=0.5, x2=1.0), ''),
-                       LO=('ramp_down()', dict(x1=0.0, x2=0.5), '')),
+            XType=dict(HI=('ramp()', dict(x1=0.5, x2=1.0), ''),
+                       LO=('inv_ramp()', dict(x1=0.0, x2=0.5), '')),
             YType=dict(FAST=('true()', {}, ''),
                        SLOW=('false()', {}, ''))
         )

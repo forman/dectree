@@ -4,7 +4,7 @@ from numba import jit, jitclass, float64
 
 @jit(nopython=True)
 def _Radiance_LOW(x):
-    # Radiance.LOW: ramp_down(x1=0, x2=50)
+    # Radiance.LOW: inv_ramp(x1=0, x2=50)
     if x < 0.0:
         return 1.0
     if x > 50.0:
@@ -26,7 +26,7 @@ def _Radiance_MIDDLE(x):
 
 @jit(nopython=True)
 def _Radiance_HIGH(x):
-    # Radiance.HIGH: ramp_up(x1=50, x2=120)
+    # Radiance.HIGH: ramp(x1=50, x2=120)
     if x < 50.0:
         return 0.0
     if x > 120.0:
@@ -36,7 +36,7 @@ def _Radiance_HIGH(x):
 
 @jit(nopython=True)
 def _Glint_LOW(x):
-    # Glint.LOW: ramp_down()
+    # Glint.LOW: inv_ramp()
     if x < 0.0:
         return 1.0
     if x > 0.5:
@@ -46,7 +46,7 @@ def _Glint_LOW(x):
 
 @jit(nopython=True)
 def _Glint_HIGH(x):
-    # Glint.HIGH: ramp_up()
+    # Glint.HIGH: ramp()
     if x < 0.5:
         return 0.0
     if x > 1.0:

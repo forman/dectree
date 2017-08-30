@@ -15,13 +15,13 @@ options:
 types:
 
   Radiance:
-    LOW: ramp_down(x1=0, x2=50)
+    LOW: inv_ramp(x1=0, x2=50)
     MIDDLE: triangular(x1=30, x2=50, x3=100)
-    HIGH: ramp_up(x1=50, x2=120)
+    HIGH: ramp(x1=50, x2=120)
 
   Glint:
-    LOW: ramp_down()
-    HIGH: ramp_up()
+    LOW: inv_ramp(x1=0.0, x2=0.5)
+    HIGH: ramp(x1=0.5, x2=1.0)
 
   Cloudy:
     - 'YES': true()
