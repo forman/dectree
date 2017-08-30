@@ -5,7 +5,7 @@ import numpy as np
 
 @vectorize([float64(float64)])
 def _Radiance_LOW(x):
-    # Radiance.LOW: ramp_down(x1=0, x2=127)
+    # Radiance.LOW: inv_ramp(x1=0, x2=127)
     if x <= 0.0:
         return 1.0
     if x <= 127.0:
@@ -27,7 +27,7 @@ def _Radiance_MIDDLE(x):
 
 @vectorize([float64(float64)])
 def _Radiance_HIGH(x):
-    # Radiance.HIGH: ramp_up(x1=127, x2=255)
+    # Radiance.HIGH: ramp(x1=127, x2=255)
     if x <= 127.0:
         return 0.0
     if x <= 255.0:
@@ -37,7 +37,7 @@ def _Radiance_HIGH(x):
 
 @vectorize([float64(float64)])
 def _Radiance_VERY_HIGH(x):
-    # Radiance.VERY_HIGH: ramp_up(x1=180, x2=220)
+    # Radiance.VERY_HIGH: ramp(x1=180, x2=220)
     if x <= 180.0:
         return 0.0
     if x <= 220.0:
@@ -121,6 +121,6 @@ def apply_rules(input, output):
     #        dark = TRUE
     output.dark = t1
     #    else:
-    t1 = np.minimum(t0, 1.0 - (t1))
+    t1 = np.minimum(t0, 1.0 - t1)
     #        not_dark = TRUE
     output.not_dark = t1

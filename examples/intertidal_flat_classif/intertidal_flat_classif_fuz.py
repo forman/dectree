@@ -4,12 +4,12 @@ import numpy as np
 
 
 @jit(nopython=True)
-def _B1_LT_085(x):
-    # B1.LT_085: lt(0.85)
-    if 0.0 == 0.0:
+def _B1_B1_veg(x):
+    # B1.B1_veg: lt(0.85, dx=0.05)
+    if 0.05 == 0.0:
         return 1.0 if x < 0.85 else 0.0
-    x1 = 0.85 - 0.0
-    x2 = 0.85 + 0.0
+    x1 = 0.85 - 0.05
+    x2 = 0.85 + 0.05
     if x <= x1:
         return 1.0
     if x <= x2:
@@ -18,12 +18,12 @@ def _B1_LT_085(x):
 
 
 @jit(nopython=True)
-def _B1_GT_1(x):
-    # B1.GT_1: gt(1.0)
-    if 0.0 == 0.0:
+def _B1_B1_strand(x):
+    # B1.B1_strand: gt(1.00, dx=0.10)
+    if 0.1 == 0.0:
         return 1.0 if x > 1.0 else 0.0
-    x1 = 1.0 - 0.0
-    x2 = 1.0 + 0.0
+    x1 = 1.0 - 0.1
+    x2 = 1.0 + 0.1
     if x <= x1:
         return 0.0
     if x <= x2:
@@ -32,12 +32,12 @@ def _B1_GT_1(x):
 
 
 @jit(nopython=True)
-def _B2_GT_0(x):
-    # B2.GT_0: gt(0.0)
-    if 0.0 == 0.0:
+def _B2_B2_schlick(x):
+    # B2.B2_schlick: gt(0.00, dx=0.01)
+    if 0.01 == 0.0:
         return 1.0 if x > 0.0 else 0.0
-    x1 = 0.0 - 0.0
-    x2 = 0.0 + 0.0
+    x1 = 0.0 - 0.01
+    x2 = 0.0 + 0.01
     if x <= x1:
         return 0.0
     if x <= x2:
@@ -46,12 +46,12 @@ def _B2_GT_0(x):
 
 
 @jit(nopython=True)
-def _B3_LT_005(x):
-    # B3.LT_005: lt(0.05)
-    if 0.0 == 0.0:
+def _B3_B3_sand(x):
+    # B3.B3_sand: lt(0.05, dx=0.01)
+    if 0.01 == 0.0:
         return 1.0 if x < 0.05 else 0.0
-    x1 = 0.05 - 0.0
-    x2 = 0.05 + 0.0
+    x1 = 0.05 - 0.01
+    x2 = 0.05 + 0.01
     if x <= x1:
         return 1.0
     if x <= x2:
@@ -60,12 +60,12 @@ def _B3_LT_005(x):
 
 
 @jit(nopython=True)
-def _B3_LT_01(x):
-    # B3.LT_01: lt(0.1)
-    if 0.0 == 0.0:
+def _B3_B3_sand2(x):
+    # B3.B3_sand2: lt(0.10, dx=0.01)
+    if 0.01 == 0.0:
         return 1.0 if x < 0.1 else 0.0
-    x1 = 0.1 - 0.0
-    x2 = 0.1 + 0.0
+    x1 = 0.1 - 0.01
+    x2 = 0.1 + 0.01
     if x <= x1:
         return 1.0
     if x <= x2:
@@ -74,12 +74,12 @@ def _B3_LT_01(x):
 
 
 @jit(nopython=True)
-def _B3_LT_015(x):
-    # B3.LT_015: lt(0.15)
-    if 0.0 == 0.0:
+def _B3_B3_misch(x):
+    # B3.B3_misch: lt(0.15, dx=0.01)
+    if 0.01 == 0.0:
         return 1.0 if x < 0.15 else 0.0
-    x1 = 0.15 - 0.0
-    x2 = 0.15 + 0.0
+    x1 = 0.15 - 0.01
+    x2 = 0.15 + 0.01
     if x <= x1:
         return 1.0
     if x <= x2:
@@ -88,12 +88,12 @@ def _B3_LT_015(x):
 
 
 @jit(nopython=True)
-def _B3_LT_02(x):
-    # B3.LT_02: lt(0.2)
-    if 0.0 == 0.0:
+def _B3_B3_schlick(x):
+    # B3.B3_schlick: lt(0.20, dx=0.01)
+    if 0.01 == 0.0:
         return 1.0 if x < 0.2 else 0.0
-    x1 = 0.2 - 0.0
-    x2 = 0.2 + 0.0
+    x1 = 0.2 - 0.01
+    x2 = 0.2 + 0.01
     if x <= x1:
         return 1.0
     if x <= x2:
@@ -102,8 +102,8 @@ def _B3_LT_02(x):
 
 
 @jit(nopython=True)
-def _B4_NODATA(x):
-    # B4.NODATA: eq(0.0)
+def _B4_B4_nodata(x):
+    # B4.B4_nodata: eq(0.0)
     if 0.0 == 0.0:
         return 1.0 if x == 0.0 else 0.0
     x1 = 0.0 - 0.0
@@ -119,12 +119,12 @@ def _B4_NODATA(x):
 
 
 @jit(nopython=True)
-def _B5_LT_01(x):
-    # B5.LT_01: lt(0.1)
-    if 0.0 == 0.0:
+def _B5_B5_wasser(x):
+    # B5.B5_wasser: lt(0.10, dx=0.05)
+    if 0.05 == 0.0:
         return 1.0 if x < 0.1 else 0.0
-    x1 = 0.1 - 0.0
-    x2 = 0.1 + 0.0
+    x1 = 0.1 - 0.05
+    x2 = 0.1 + 0.05
     if x <= x1:
         return 1.0
     if x <= x2:
@@ -133,12 +133,12 @@ def _B5_LT_01(x):
 
 
 @jit(nopython=True)
-def _B7_LT_05(x):
-    # B7.LT_05: lt(0.5)
-    if 0.0 == 0.0:
+def _B7_B7_muschel(x):
+    # B7.B7_muschel: lt(0.50, dx=0.05)
+    if 0.05 == 0.0:
         return 1.0 if x < 0.5 else 0.0
-    x1 = 0.5 - 0.0
-    x2 = 0.5 + 0.0
+    x1 = 0.5 - 0.05
+    x2 = 0.5 + 0.05
     if x <= x1:
         return 1.0
     if x <= x2:
@@ -147,12 +147,12 @@ def _B7_LT_05(x):
 
 
 @jit(nopython=True)
-def _B8_GT_0(x):
-    # B8.GT_0: gt(0.0)
-    if 0.0 == 0.0:
+def _B8_B8_sediment_wasser(x):
+    # B8.B8_sediment_wasser: gt(0.00, dx=0.01)
+    if 0.01 == 0.0:
         return 1.0 if x > 0.0 else 0.0
-    x1 = 0.0 - 0.0
-    x2 = 0.0 + 0.0
+    x1 = 0.0 - 0.01
+    x2 = 0.0 + 0.01
     if x <= x1:
         return 0.0
     if x <= x2:
@@ -161,12 +161,12 @@ def _B8_GT_0(x):
 
 
 @jit(nopython=True)
-def _B8_LT_009(x):
-    # B8.LT_009: lt(0.09)
-    if 0.0 == 0.0:
+def _B8_B8_veg_wasser(x):
+    # B8.B8_veg_wasser: lt(0.09, dx=0.01)
+    if 0.01 == 0.0:
         return 1.0 if x < 0.09 else 0.0
-    x1 = 0.09 - 0.0
-    x2 = 0.09 + 0.0
+    x1 = 0.09 - 0.01
+    x2 = 0.09 + 0.01
     if x <= x1:
         return 1.0
     if x <= x2:
@@ -175,12 +175,12 @@ def _B8_LT_009(x):
 
 
 @jit(nopython=True)
-def _B8_GT_033(x):
-    # B8.GT_033: gt(0.33)
-    if 0.0 == 0.0:
+def _B8_B8_veg(x):
+    # B8.B8_veg: gt(0.33, dx=0.02)
+    if 0.02 == 0.0:
         return 1.0 if x > 0.33 else 0.0
-    x1 = 0.33 - 0.0
-    x2 = 0.33 + 0.0
+    x1 = 0.33 - 0.02
+    x2 = 0.33 + 0.02
     if x <= x1:
         return 0.0
     if x <= x2:
@@ -189,12 +189,12 @@ def _B8_GT_033(x):
 
 
 @jit(nopython=True)
-def _B8_GT_035(x):
-    # B8.GT_035: gt(0.35)
-    if 0.0 == 0.0:
+def _B8_B8_muschel_schill(x):
+    # B8.B8_muschel_schill: gt(0.35, dx=0.02)
+    if 0.02 == 0.0:
         return 1.0 if x > 0.35 else 0.0
-    x1 = 0.35 - 0.0
-    x2 = 0.35 + 0.0
+    x1 = 0.35 - 0.02
+    x2 = 0.35 + 0.02
     if x <= x1:
         return 0.0
     if x <= x2:
@@ -203,12 +203,12 @@ def _B8_GT_035(x):
 
 
 @jit(nopython=True)
-def _B8_GT_04(x):
-    # B8.GT_04: gt(0.4)
-    if 0.0 == 0.0:
+def _B8_B8_muschel_min(x):
+    # B8.B8_muschel_min: gt(0.40, dx=0.02)
+    if 0.02 == 0.0:
         return 1.0 if x > 0.4 else 0.0
-    x1 = 0.4 - 0.0
-    x2 = 0.4 + 0.0
+    x1 = 0.4 - 0.02
+    x2 = 0.4 + 0.02
     if x <= x1:
         return 0.0
     if x <= x2:
@@ -217,12 +217,12 @@ def _B8_GT_04(x):
 
 
 @jit(nopython=True)
-def _B8_GT_045(x):
-    # B8.GT_045: gt(0.45)
-    if 0.0 == 0.0:
+def _B8_B8_veg_dicht(x):
+    # B8.B8_veg_dicht: gt(0.45, dx=0.02)
+    if 0.02 == 0.0:
         return 1.0 if x > 0.45 else 0.0
-    x1 = 0.45 - 0.0
-    x2 = 0.45 + 0.0
+    x1 = 0.45 - 0.02
+    x2 = 0.45 + 0.02
     if x <= x1:
         return 0.0
     if x <= x2:
@@ -231,12 +231,12 @@ def _B8_GT_045(x):
 
 
 @jit(nopython=True)
-def _B8_LT_085(x):
-    # B8.LT_085: lt(0.85)
-    if 0.0 == 0.0:
+def _B8_B8_muschel_max(x):
+    # B8.B8_muschel_max: lt(0.85, dx=0.02)
+    if 0.02 == 0.0:
         return 1.0 if x < 0.85 else 0.0
-    x1 = 0.85 - 0.0
-    x2 = 0.85 + 0.0
+    x1 = 0.85 - 0.02
+    x2 = 0.85 + 0.02
     if x <= x1:
         return 1.0
     if x <= x2:
@@ -245,12 +245,12 @@ def _B8_LT_085(x):
 
 
 @jit(nopython=True)
-def _B16_GT_0(x):
-    # B16.GT_0: gt(0.0)
-    if 0.0 == 0.0:
+def _B16_B16_sediment_wasser(x):
+    # B16.B16_sediment_wasser: gt(0.00, dx=0.01)
+    if 0.01 == 0.0:
         return 1.0 if x > 0.0 else 0.0
-    x1 = 0.0 - 0.0
-    x2 = 0.0 + 0.0
+    x1 = 0.0 - 0.01
+    x2 = 0.0 + 0.01
     if x <= x1:
         return 0.0
     if x <= x2:
@@ -259,12 +259,12 @@ def _B16_GT_0(x):
 
 
 @jit(nopython=True)
-def _B19_GT_015(x):
-    # B19.GT_015: gt(0.15)
-    if 0.0 == 0.0:
+def _B19_B19_muschel(x):
+    # B19.B19_muschel: gt(0.15, dx=0.01)
+    if 0.01 == 0.0:
         return 1.0 if x > 0.15 else 0.0
-    x1 = 0.15 - 0.0
-    x2 = 0.15 + 0.0
+    x1 = 0.15 - 0.01
+    x2 = 0.15 + 0.01
     if x <= x1:
         return 0.0
     if x <= x2:
@@ -273,12 +273,12 @@ def _B19_GT_015(x):
 
 
 @jit(nopython=True)
-def _BSum_GT_011(x):
-    # BSum.GT_011: gt(0.11)
-    if 0.0 == 0.0:
+def _BSum_BSum_schill_1(x):
+    # BSum.BSum_schill_1: gt(0.11, dx=0.02)
+    if 0.02 == 0.0:
         return 1.0 if x > 0.11 else 0.0
-    x1 = 0.11 - 0.0
-    x2 = 0.11 + 0.0
+    x1 = 0.11 - 0.02
+    x2 = 0.11 + 0.02
     if x <= x1:
         return 0.0
     if x <= x2:
@@ -287,12 +287,12 @@ def _BSum_GT_011(x):
 
 
 @jit(nopython=True)
-def _BSum_GT_013(x):
-    # BSum.GT_013: gt(0.13)
-    if 0.0 == 0.0:
+def _BSum_BSum_schill_1a(x):
+    # BSum.BSum_schill_1a: gt(0.13, dx=0.02)
+    if 0.02 == 0.0:
         return 1.0 if x > 0.13 else 0.0
-    x1 = 0.13 - 0.0
-    x2 = 0.13 + 0.0
+    x1 = 0.13 - 0.02
+    x2 = 0.13 + 0.02
     if x <= x1:
         return 0.0
     if x <= x2:
@@ -301,12 +301,12 @@ def _BSum_GT_013(x):
 
 
 @jit(nopython=True)
-def _BSum_GT_016(x):
-    # BSum.GT_016: gt(0.16)
-    if 0.0 == 0.0:
+def _BSum_BSum_schill_2(x):
+    # BSum.BSum_schill_2: gt(0.16, dx=0.01)
+    if 0.01 == 0.0:
         return 1.0 if x > 0.16 else 0.0
-    x1 = 0.16 - 0.0
-    x2 = 0.16 + 0.0
+    x1 = 0.16 - 0.01
+    x2 = 0.16 + 0.01
     if x <= x1:
         return 0.0
     if x <= x2:
@@ -406,65 +406,65 @@ class Output:
 def apply_rules(input: Input, output: Output):
     for i in range(len(output.nodata)):
         t0 = 1.0
-        #    if b4 is NODATA:
-        t1 = min(t0, _B4_NODATA(input.b4[i]))
+        #    if b4 is B4_nodata:
+        t1 = min(t0, _B4_B4_nodata(input.b4[i]))
         #        nodata = TRUE
         output.nodata[i] = t1
-        #    elif (b8 is GT_033 and b1 is LT_085) or b8 is LT_009:
+        #    elif (b8 is B8_veg and b1 is B1_veg) or b8 is B8_veg_wasser:
         t1 = min(t0, 1.0 - t1)
-        t2 = min(t1, max(min(_B8_GT_033(input.b8[i]), _B1_LT_085(input.b1[i])), _B8_LT_009(input.b8[i])))
-        #        if b5 is LT_01:
-        t3 = min(t2, _B5_LT_01(input.b5[i]))
+        t2 = min(t1, max(min(_B8_B8_veg(input.b8[i]), _B1_B1_veg(input.b1[i])), _B8_B8_veg_wasser(input.b8[i])))
+        #        if b5 is B5_wasser:
+        t3 = min(t2, _B5_B5_wasser(input.b5[i]))
         #            Wasser = TRUE
         output.Wasser[i] = t3
-        #        elif (b19 is GT_015 and (b8 is GT_04 and b8 is LT_085) and b7 is LT_05) or (b8 is GT_04 and bsum is GT_011) or (b8 is GT_035 and bsum is GT_016):
+        #        elif (b19 is B19_muschel and (b8 is B8_muschel_min and b8 is B8_muschel_max) and b7 is B7_muschel) or (b8 is B8_muschel_min and bsum is BSum_schill_1) or (b8 is B8_muschel_schill and bsum is BSum_schill_2):
         t3 = min(t2, 1.0 - t3)
-        t4 = min(t3, max(max(min(min(_B19_GT_015(input.b19[i]), min(_B8_GT_04(input.b8[i]), _B8_LT_085(input.b8[i]))), _B7_LT_05(input.b7[i])), min(_B8_GT_04(input.b8[i]), _BSum_GT_011(input.bsum[i]))), min(_B8_GT_035(input.b8[i]), _BSum_GT_016(input.bsum[i]))))
-        #            if bsum is GT_013:
-        t5 = min(t4, _BSum_GT_013(input.bsum[i]))
+        t4 = min(t3, max(max(min(min(_B19_B19_muschel(input.b19[i]), min(_B8_B8_muschel_min(input.b8[i]), _B8_B8_muschel_max(input.b8[i]))), _B7_B7_muschel(input.b7[i])), min(_B8_B8_muschel_min(input.b8[i]), _BSum_BSum_schill_1(input.bsum[i]))), min(_B8_B8_muschel_schill(input.b8[i]), _BSum_BSum_schill_2(input.bsum[i]))))
+        #            if bsum is BSum_schill_1a:
+        t5 = min(t4, _BSum_BSum_schill_1a(input.bsum[i]))
         #                Schill = TRUE
         output.Schill[i] = t5
         #            else:
         t5 = min(t4, 1.0 - t5)
         #                Muschel = TRUE
         output.Muschel[i] = t5
-        #        elif b8 is GT_045:
+        #        elif b8 is B8_veg_dicht:
         t4 = min(t3, 1.0 - t4)
-        t5 = min(t4, _B8_GT_045(input.b8[i]))
+        t5 = min(t4, _B8_B8_veg_dicht(input.b8[i]))
         #            dense2 = TRUE
         output.dense2[i] = t5
         #        else:
         t5 = min(t4, 1.0 - t5)
         #            dense1 = TRUE
         output.dense1[i] = t5
-        #    elif b1 is GT_1:
+        #    elif b1 is B1_strand:
         t2 = min(t1, 1.0 - t2)
-        t3 = min(t2, _B1_GT_1(input.b1[i]))
+        t3 = min(t2, _B1_B1_strand(input.b1[i]))
         #        Strand = TRUE
         output.Strand[i] = t3
-        #    elif b3 is LT_005:
+        #    elif b3 is B3_sand:
         t3 = min(t2, 1.0 - t3)
-        t4 = min(t3, _B3_LT_005(input.b3[i]))
+        t4 = min(t3, _B3_B3_sand(input.b3[i]))
         #        Sand = TRUE
         output.Sand[i] = t4
-        #    elif b3 is LT_01 and b8 is GT_0:
+        #    elif b3 is B3_sand2 and b8 is B8_sediment_wasser:
         t4 = min(t3, 1.0 - t4)
-        t5 = min(t4, min(_B3_LT_01(input.b3[i]), _B8_GT_0(input.b8[i])))
+        t5 = min(t4, min(_B3_B3_sand2(input.b3[i]), _B8_B8_sediment_wasser(input.b8[i])))
         #        Misch = TRUE
         output.Misch[i] = t5
-        #    elif b3 is LT_015 and b8 is GT_0:
+        #    elif b3 is B3_misch and b8 is B8_sediment_wasser:
         t5 = min(t4, 1.0 - t5)
-        t6 = min(t5, min(_B3_LT_015(input.b3[i]), _B8_GT_0(input.b8[i])))
+        t6 = min(t5, min(_B3_B3_misch(input.b3[i]), _B8_B8_sediment_wasser(input.b8[i])))
         #        Misch2 = TRUE
         output.Misch2[i] = t6
-        #    elif b3 is LT_02 and b2 is GT_0 and b8 is GT_0:
+        #    elif b3 is B3_schlick and b2 is B2_schlick and b8 is B8_sediment_wasser:
         t6 = min(t5, 1.0 - t6)
-        t7 = min(t6, min(min(_B3_LT_02(input.b3[i]), _B2_GT_0(input.b2[i])), _B8_GT_0(input.b8[i])))
+        t7 = min(t6, min(min(_B3_B3_schlick(input.b3[i]), _B2_B2_schlick(input.b2[i])), _B8_B8_sediment_wasser(input.b8[i])))
         #        Schlick = TRUE
         output.Schlick[i] = t7
-        #    elif b16 is GT_0 and b8 is GT_0:
+        #    elif b16 is B16_sediment_wasser and b8 is B8_sediment_wasser:
         t7 = min(t6, 1.0 - t7)
-        t8 = min(t7, min(_B16_GT_0(input.b16[i]), _B8_GT_0(input.b8[i])))
+        t8 = min(t7, min(_B16_B16_sediment_wasser(input.b16[i]), _B8_B8_sediment_wasser(input.b8[i])))
         #        schlick_t = TRUE
         output.schlick_t[i] = t8
         #    else:
