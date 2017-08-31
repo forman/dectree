@@ -14,11 +14,12 @@ from .types import VarName, PropName, TypeName, PropDef, TypeDefs, VarDefs, Prop
 
 def gen_code(type_defs,
              input_defs,
+             derived_defs,
              output_defs,
              rules,
              **options):
     text_io = StringIO()
-    code_gen = CodeGen(type_defs, input_defs, output_defs, rules, text_io, options)
+    code_gen = CodeGen(type_defs, input_defs, derived_defs, output_defs, rules, text_io, options)
     code_gen.gen_code()
     return text_io.getvalue()
 
@@ -27,6 +28,7 @@ class CodeGen:
     def __init__(self,
                  type_defs,
                  input_defs,
+                 derived_defs,
                  output_defs,
                  rules,
                  out_file,
@@ -39,6 +41,7 @@ class CodeGen:
 
         self.type_defs = type_defs
         self.input_defs = input_defs
+        self.derived_defs = derived_defs
         self.output_defs = output_defs
         self.rules = rules
         self.out_file = out_file

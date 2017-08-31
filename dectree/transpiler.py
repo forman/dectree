@@ -64,23 +64,18 @@ def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
     if not src_code:
         raise ValueError('Empty decision tree definition')
 
-    sections = ('types', 'inputs', 'outputs', 'rules')
-    if not all([section in src_code for section in sections]):
-        raise ValueError('Invalid decision tree definition: missing section {} or all of them'.format(sections))
-
-    for section in sections:
-        if not src_code[section]:
-            raise ValueError("Invalid decision tree definition: section '{}' is empty".format(section))
+    _validate_src_code(src_code)
 
     types = _normalize_types(_to_omap(src_code['types'], recursive=True))
     input_defs = _to_omap(src_code['inputs'])
+    derived_defs = _to_omap(src_code.get('derived'))
     output_defs = _to_omap(src_code['outputs'])
     rules = _normalize_rules(src_code['rules'])
 
     src_options = dict(src_code.get('options') or {})
     src_options.update(options or {})
 
-    py_code = gen_code(types, input_defs, output_defs, rules, **src_options)
+    py_code = gen_code(types, input_defs, derived_defs, output_defs, rules, **src_options)
 
     if out_file:
         try:
@@ -101,6 +96,19 @@ def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
         fd.close()
 
     return out_path
+
+
+def _validate_src_code(src_code):
+    required_sections = ('types', 'inputs', 'outputs', 'rules')
+    possible_sections = required_sections + ('computed', 'options')
+    for section in required_sections:
+        if section not in src_code:
+            raise ValueError('Invalid decision tree definition: missing section "{}"'.format(section))
+        if not src_code[section]:
+            raise ValueError('Invalid decision tree definition: section "{}" is empty'.format(section))
+    for section in src_code:
+        if section not in possible_sections:
+            raise ValueError('Invalid decision tree definition: unknown section "{}"'.format(section))
 
 
 def _normalize_types(types: Dict[str, Dict[str, str]]) -> TypeDefs:

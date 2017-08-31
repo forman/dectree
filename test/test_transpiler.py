@@ -62,14 +62,13 @@ class TranspileTest(unittest.TestCase):
         out_file = StringIO()
         with self.assertRaises(ValueError) as cm:
             transpile(src_file, out_file=out_file)
-        self.assertEqual(str(cm.exception), "Invalid decision tree definition: missing section "
-                                            "('types', 'inputs', 'outputs', 'rules') or all of them")
+        self.assertEqual(str(cm.exception), 'Invalid decision tree definition: section "types" is empty')
 
         src_file = StringIO("types: null\ninputs: null\noutputs: null\nrules: null\n")
         out_file = StringIO()
         with self.assertRaises(ValueError) as cm:
             transpile(src_file, out_file=out_file)
-        self.assertEqual(str(cm.exception), "Invalid decision tree definition: section 'types' is empty")
+        self.assertEqual(str(cm.exception), 'Invalid decision tree definition: section "types" is empty')
 
         src_file = StringIO(get_src(a='u'))
         out_file = StringIO()
