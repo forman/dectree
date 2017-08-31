@@ -1,6 +1,6 @@
 import unittest
 
-from dectree.codegen import VECTORIZE_PROP, ExprGen
+from dectree.codegen import VECTORIZE_PROP, ExprGen, _get_effective_op_pattern
 
 
 class ExprGenTest(unittest.TestCase):
@@ -12,46 +12,46 @@ class ExprGenTest(unittest.TestCase):
                        SLOW=('false()', {}, ''))
         )
         var_defs = dict(x='XType', y='YType')
-        options = dict()
-        transpiler = ExprGen(type_defs, var_defs, options)
+        transpiler = ExprGen(type_defs, var_defs)
         self.assertEqual(transpiler.gen_expr('y == FAST'),
-                         '_YType_FAST(input.y)')
+                         '_YType_FAST(inputs.y)')
         self.assertEqual(transpiler.gen_expr('x != HI'),
-                         '1.0 - (_XType_HI(input.x))')
+                         '1.0 - (_XType_HI(inputs.x))')
         self.assertEqual(transpiler.gen_expr('y is FAST'),
-                         '_YType_FAST(input.y)')
+                         '_YType_FAST(inputs.y)')
         self.assertEqual(transpiler.gen_expr('x is not HI'),
-                         '1.0 - (_XType_HI(input.x))')
+                         '1.0 - (_XType_HI(inputs.x))')
         self.assertEqual(transpiler.gen_expr('x != HI and y == SLOW'),
-                         'min(1.0 - (_XType_HI(input.x)), _YType_SLOW(input.y))')
+                         'min(1.0 - (_XType_HI(inputs.x)), _YType_SLOW(inputs.y))')
         self.assertEqual(transpiler.gen_expr('x != HI or y == SLOW'),
-                         'max(1.0 - (_XType_HI(input.x)), _YType_SLOW(input.y))')
+                         'max(1.0 - (_XType_HI(inputs.x)), _YType_SLOW(inputs.y))')
         self.assertEqual(transpiler.gen_expr('x != HI or y == SLOW or y == FAST'),
-                         'max(max(1.0 - (_XType_HI(input.x)), _YType_SLOW(input.y)), _YType_FAST(input.y))')
+                         'max(max(1.0 - (_XType_HI(inputs.x)), _YType_SLOW(inputs.y)), _YType_FAST(inputs.y))')
         self.assertEqual(transpiler.gen_expr('x == HI or not y != SLOW'),
-                         'max(_XType_HI(input.x), 1.0 - (1.0 - (_YType_SLOW(input.y))))')
+                         'max(_XType_HI(inputs.x), 1.0 - (1.0 - (_YType_SLOW(inputs.y))))')
         self.assertEqual(transpiler.gen_expr('x == HI and not (y == FAST or x == LO)'),
-                         'min(_XType_HI(input.x), 1.0 - (max(_YType_FAST(input.y), _XType_LO(input.x))))')
+                         'min(_XType_HI(inputs.x), 1.0 - (max(_YType_FAST(inputs.y), _XType_LO(inputs.x))))')
 
-        options = dict(vectorize=VECTORIZE_PROP)
-        transpiler = ExprGen(type_defs, var_defs, options)
-        self.assertEqual(transpiler.gen_expr('x == HI and not (y == FAST or x == LO)'),
-                         'np.minimum(_XType_HI(input.x), 1.0 - (np.maximum(_YType_FAST(input.y), '
-                         '_XType_LO(input.x))))')
+        op_patters = dict(not_pattern=_get_effective_op_pattern('1.0 - ({x})', vectorize=VECTORIZE_PROP),
+                          and_pattern=_get_effective_op_pattern('min({x}, {y})', vectorize=VECTORIZE_PROP),
+                          or_pattern=_get_effective_op_pattern('max({x}, {y})', vectorize=VECTORIZE_PROP))
 
-        options = dict(parameterize=True)
-        transpiler = ExprGen(type_defs, var_defs, options)
+        transpiler = ExprGen(type_defs, var_defs, vectorize=VECTORIZE_PROP, **op_patters)
         self.assertEqual(transpiler.gen_expr('x == HI and not (y == FAST or x == LO)'),
-                         'min(_XType_HI(input.x, x1=params.XType_HI_x1, x2=params.XType_HI_x2), '
-                         '1.0 - (max(_YType_FAST(input.y), '
-                         '_XType_LO(input.x, x1=params.XType_LO_x1, x2=params.XType_LO_x2))))')
+                         'np.minimum(_XType_HI(inputs.x), 1.0 - (np.maximum(_YType_FAST(inputs.y), '
+                         '_XType_LO(inputs.x))))')
 
-        options = dict(vectorize=VECTORIZE_PROP, parameterize=True)
-        transpiler = ExprGen(type_defs, var_defs, options)
+        transpiler = ExprGen(type_defs, var_defs, parameterize=True)
         self.assertEqual(transpiler.gen_expr('x == HI and not (y == FAST or x == LO)'),
-                         'np.minimum(_XType_HI(input.x, x1=params.XType_HI_x1, x2=params.XType_HI_x2), '
-                         '1.0 - (np.maximum(_YType_FAST(input.y), '
-                         '_XType_LO(input.x, x1=params.XType_LO_x1, x2=params.XType_LO_x2))))')
+                         'min(_XType_HI(inputs.x, x1=params.XType_HI_x1, x2=params.XType_HI_x2), '
+                         '1.0 - (max(_YType_FAST(inputs.y), '
+                         '_XType_LO(inputs.x, x1=params.XType_LO_x1, x2=params.XType_LO_x2))))')
+
+        transpiler = ExprGen(type_defs, var_defs, vectorize=VECTORIZE_PROP, parameterize=True, **op_patters)
+        self.assertEqual(transpiler.gen_expr('x == HI and not (y == FAST or x == LO)'),
+                         'np.minimum(_XType_HI(inputs.x, x1=params.XType_HI_x1, x2=params.XType_HI_x2), '
+                         '1.0 - (np.maximum(_YType_FAST(inputs.y), '
+                         '_XType_LO(inputs.x, x1=params.XType_LO_x1, x2=params.XType_LO_x2))))')
 
     def test_failure(self):
         type_defs = dict(

@@ -403,71 +403,71 @@ class Outputs:
 
 
 @jit(nopython=True)
-def apply_rules(input: Inputs, output: Outputs):
-    for i in range(len(output.nodata)):
+def apply_rules(inputs: Inputs, outputs: Outputs):
+    for i in range(len(outputs.nodata)):
         t0 = 1.0
         #    if b4 is B4_nodata:
-        t1 = min(t0, _B4_B4_nodata(input.b4[i]))
+        t1 = min(t0, _B4_B4_nodata(inputs.b4[i]))
         #        nodata = TRUE
-        output.nodata[i] = t1
+        outputs.nodata[i] = t1
         #    elif (b8 is B8_veg and b1 is B1_veg) or b8 is B8_veg_wasser:
         t1 = min(t0, 1.0 - t1)
-        t2 = min(t1, max(min(_B8_B8_veg(input.b8[i]), _B1_B1_veg(input.b1[i])), _B8_B8_veg_wasser(input.b8[i])))
+        t2 = min(t1, max(min(_B8_B8_veg(inputs.b8[i]), _B1_B1_veg(inputs.b1[i])), _B8_B8_veg_wasser(inputs.b8[i])))
         #        if b5 is B5_wasser:
-        t3 = min(t2, _B5_B5_wasser(input.b5[i]))
+        t3 = min(t2, _B5_B5_wasser(inputs.b5[i]))
         #            Wasser = TRUE
-        output.Wasser[i] = t3
+        outputs.Wasser[i] = t3
         #        elif (b19 is B19_muschel and (b8 is B8_muschel_min and b8 is B8_muschel_max) and b7 is B7_muschel) or (b8 is B8_muschel_min and bsum is BSum_schill_1) or (b8 is B8_muschel_schill and bsum is BSum_schill_2):
         t3 = min(t2, 1.0 - t3)
-        t4 = min(t3, max(max(min(min(_B19_B19_muschel(input.b19[i]), min(_B8_B8_muschel_min(input.b8[i]), _B8_B8_muschel_max(input.b8[i]))), _B7_B7_muschel(input.b7[i])), min(_B8_B8_muschel_min(input.b8[i]), _BSum_BSum_schill_1(input.bsum[i]))), min(_B8_B8_muschel_schill(input.b8[i]), _BSum_BSum_schill_2(input.bsum[i]))))
+        t4 = min(t3, max(max(min(min(_B19_B19_muschel(inputs.b19[i]), min(_B8_B8_muschel_min(inputs.b8[i]), _B8_B8_muschel_max(inputs.b8[i]))), _B7_B7_muschel(inputs.b7[i])), min(_B8_B8_muschel_min(inputs.b8[i]), _BSum_BSum_schill_1(inputs.bsum[i]))), min(_B8_B8_muschel_schill(inputs.b8[i]), _BSum_BSum_schill_2(inputs.bsum[i]))))
         #            if bsum is BSum_schill_1a:
-        t5 = min(t4, _BSum_BSum_schill_1a(input.bsum[i]))
+        t5 = min(t4, _BSum_BSum_schill_1a(inputs.bsum[i]))
         #                Schill = TRUE
-        output.Schill[i] = t5
+        outputs.Schill[i] = t5
         #            else:
         t5 = min(t4, 1.0 - t5)
         #                Muschel = TRUE
-        output.Muschel[i] = t5
+        outputs.Muschel[i] = t5
         #        elif b8 is B8_veg_dicht:
         t4 = min(t3, 1.0 - t4)
-        t5 = min(t4, _B8_B8_veg_dicht(input.b8[i]))
+        t5 = min(t4, _B8_B8_veg_dicht(inputs.b8[i]))
         #            dense2 = TRUE
-        output.dense2[i] = t5
+        outputs.dense2[i] = t5
         #        else:
         t5 = min(t4, 1.0 - t5)
         #            dense1 = TRUE
-        output.dense1[i] = t5
+        outputs.dense1[i] = t5
         #    elif b1 is B1_strand:
         t2 = min(t1, 1.0 - t2)
-        t3 = min(t2, _B1_B1_strand(input.b1[i]))
+        t3 = min(t2, _B1_B1_strand(inputs.b1[i]))
         #        Strand = TRUE
-        output.Strand[i] = t3
+        outputs.Strand[i] = t3
         #    elif b3 is B3_sand:
         t3 = min(t2, 1.0 - t3)
-        t4 = min(t3, _B3_B3_sand(input.b3[i]))
+        t4 = min(t3, _B3_B3_sand(inputs.b3[i]))
         #        Sand = TRUE
-        output.Sand[i] = t4
+        outputs.Sand[i] = t4
         #    elif b3 is B3_sand2 and b8 is B8_sediment_wasser:
         t4 = min(t3, 1.0 - t4)
-        t5 = min(t4, min(_B3_B3_sand2(input.b3[i]), _B8_B8_sediment_wasser(input.b8[i])))
+        t5 = min(t4, min(_B3_B3_sand2(inputs.b3[i]), _B8_B8_sediment_wasser(inputs.b8[i])))
         #        Misch = TRUE
-        output.Misch[i] = t5
+        outputs.Misch[i] = t5
         #    elif b3 is B3_misch and b8 is B8_sediment_wasser:
         t5 = min(t4, 1.0 - t5)
-        t6 = min(t5, min(_B3_B3_misch(input.b3[i]), _B8_B8_sediment_wasser(input.b8[i])))
+        t6 = min(t5, min(_B3_B3_misch(inputs.b3[i]), _B8_B8_sediment_wasser(inputs.b8[i])))
         #        Misch2 = TRUE
-        output.Misch2[i] = t6
+        outputs.Misch2[i] = t6
         #    elif b3 is B3_schlick and b2 is B2_schlick and b8 is B8_sediment_wasser:
         t6 = min(t5, 1.0 - t6)
-        t7 = min(t6, min(min(_B3_B3_schlick(input.b3[i]), _B2_B2_schlick(input.b2[i])), _B8_B8_sediment_wasser(input.b8[i])))
+        t7 = min(t6, min(min(_B3_B3_schlick(inputs.b3[i]), _B2_B2_schlick(inputs.b2[i])), _B8_B8_sediment_wasser(inputs.b8[i])))
         #        Schlick = TRUE
-        output.Schlick[i] = t7
+        outputs.Schlick[i] = t7
         #    elif b16 is B16_sediment_wasser and b8 is B8_sediment_wasser:
         t7 = min(t6, 1.0 - t7)
-        t8 = min(t7, min(_B16_B16_sediment_wasser(input.b16[i]), _B8_B8_sediment_wasser(input.b8[i])))
+        t8 = min(t7, min(_B16_B16_sediment_wasser(inputs.b16[i]), _B8_B8_sediment_wasser(inputs.b8[i])))
         #        schlick_t = TRUE
-        output.schlick_t[i] = t8
+        outputs.schlick_t[i] = t8
         #    else:
         t8 = min(t7, 1.0 - t8)
         #        Wasser2 = TRUE
-        output.Wasser2[i] = t8
+        outputs.Wasser2[i] = t8

@@ -403,80 +403,80 @@ class Outputs:
 
 
 @jit(nopython=True)
-def apply_rules(input: Inputs, output: Outputs):
-    for i in range(len(output.nodata)):
+def apply_rules(inputs: Inputs, outputs: Outputs):
+    for i in range(len(outputs.nodata)):
         t0 = 1.0
         #    if b4 is NODATA:
-        t1 = min(t0, _B4_NODATA(input.b4[i]))
+        t1 = min(t0, _B4_NODATA(inputs.b4[i]))
         #        nodata = TRUE
-        output.nodata[i] = t1
+        outputs.nodata[i] = t1
         #    else:
         t1 = min(t0, 1.0 - t1)
         #        if (b8 is GT_033 and b1 is LT_085) or b8 is LT_009:
-        t2 = min(t1, max(min(_B8_GT_033(input.b8[i]), _B1_LT_085(input.b1[i])), _B8_LT_009(input.b8[i])))
+        t2 = min(t1, max(min(_B8_GT_033(inputs.b8[i]), _B1_LT_085(inputs.b1[i])), _B8_LT_009(inputs.b8[i])))
         #            if b5 is LT_01:
-        t3 = min(t2, _B5_LT_01(input.b5[i]))
+        t3 = min(t2, _B5_LT_01(inputs.b5[i]))
         #                Wasser = TRUE
-        output.Wasser[i] = t3
+        outputs.Wasser[i] = t3
         #            else:
         t3 = min(t2, 1.0 - t3)
         #                if (b19 is GT_015 and (b8 is GT_04 and b8 is LT_085) and b7 is LT_05) or (b8 is GT_04 and bsum is GT_011) or (b8 is GT_035 and bsum is GT_016):
-        t4 = min(t3, max(max(min(min(_B19_GT_015(input.b19[i]), min(_B8_GT_04(input.b8[i]), _B8_LT_085(input.b8[i]))), _B7_LT_05(input.b7[i])), min(_B8_GT_04(input.b8[i]), _BSum_GT_011(input.bsum[i]))), min(_B8_GT_035(input.b8[i]), _BSum_GT_016(input.bsum[i]))))
+        t4 = min(t3, max(max(min(min(_B19_GT_015(inputs.b19[i]), min(_B8_GT_04(inputs.b8[i]), _B8_LT_085(inputs.b8[i]))), _B7_LT_05(inputs.b7[i])), min(_B8_GT_04(inputs.b8[i]), _BSum_GT_011(inputs.bsum[i]))), min(_B8_GT_035(inputs.b8[i]), _BSum_GT_016(inputs.bsum[i]))))
         #                    if bsum is GT_013:
-        t5 = min(t4, _BSum_GT_013(input.bsum[i]))
+        t5 = min(t4, _BSum_GT_013(inputs.bsum[i]))
         #                        Schill = TRUE
-        output.Schill[i] = t5
+        outputs.Schill[i] = t5
         #                    else:
         t5 = min(t4, 1.0 - t5)
         #                        Muschel = TRUE
-        output.Muschel[i] = t5
+        outputs.Muschel[i] = t5
         #                else:
         t4 = min(t3, 1.0 - t4)
         #                    if b8 is GT_045:
-        t5 = min(t4, _B8_GT_045(input.b8[i]))
+        t5 = min(t4, _B8_GT_045(inputs.b8[i]))
         #                        dense2 = TRUE
-        output.dense2[i] = t5
+        outputs.dense2[i] = t5
         #                    else:
         t5 = min(t4, 1.0 - t5)
         #                        dense1 = TRUE
-        output.dense1[i] = t5
+        outputs.dense1[i] = t5
         #        else:
         t2 = min(t1, 1.0 - t2)
         #            if b1 is GT_1:
-        t3 = min(t2, _B1_GT_1(input.b1[i]))
+        t3 = min(t2, _B1_GT_1(inputs.b1[i]))
         #                Strand = TRUE
-        output.Strand[i] = t3
+        outputs.Strand[i] = t3
         #            else:
         t3 = min(t2, 1.0 - t3)
         #                if b3 is LT_005:
-        t4 = min(t3, _B3_LT_005(input.b3[i]))
+        t4 = min(t3, _B3_LT_005(inputs.b3[i]))
         #                    Sand = TRUE
-        output.Sand[i] = t4
+        outputs.Sand[i] = t4
         #                else:
         t4 = min(t3, 1.0 - t4)
         #                    if b3 is LT_01 and b8 is GT_0:
-        t5 = min(t4, min(_B3_LT_01(input.b3[i]), _B8_GT_0(input.b8[i])))
+        t5 = min(t4, min(_B3_LT_01(inputs.b3[i]), _B8_GT_0(inputs.b8[i])))
         #                        Misch = TRUE
-        output.Misch[i] = t5
+        outputs.Misch[i] = t5
         #                    else:
         t5 = min(t4, 1.0 - t5)
         #                        if b3 is LT_015 and b8 is GT_0:
-        t6 = min(t5, min(_B3_LT_015(input.b3[i]), _B8_GT_0(input.b8[i])))
+        t6 = min(t5, min(_B3_LT_015(inputs.b3[i]), _B8_GT_0(inputs.b8[i])))
         #                            Misch2 = TRUE
-        output.Misch2[i] = t6
+        outputs.Misch2[i] = t6
         #                        else:
         t6 = min(t5, 1.0 - t6)
         #                            if b3 is LT_02 and b2 is GT_0 and b8 is GT_0:
-        t7 = min(t6, min(min(_B3_LT_02(input.b3[i]), _B2_GT_0(input.b2[i])), _B8_GT_0(input.b8[i])))
+        t7 = min(t6, min(min(_B3_LT_02(inputs.b3[i]), _B2_GT_0(inputs.b2[i])), _B8_GT_0(inputs.b8[i])))
         #                                Schlick = TRUE
-        output.Schlick[i] = t7
+        outputs.Schlick[i] = t7
         #                            else:
         t7 = min(t6, 1.0 - t7)
         #                                if b16 is GT_0 and b8 is GT_0:
-        t8 = min(t7, min(_B16_GT_0(input.b16[i]), _B8_GT_0(input.b8[i])))
+        t8 = min(t7, min(_B16_GT_0(inputs.b16[i]), _B8_GT_0(inputs.b8[i])))
         #                                    schlick_t = TRUE
-        output.schlick_t[i] = t8
+        outputs.schlick_t[i] = t8
         #                                else:
         t8 = min(t7, 1.0 - t8)
         #                                    Wasser2 = TRUE
-        output.Wasser2[i] = t8
+        outputs.Wasser2[i] = t8

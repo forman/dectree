@@ -2,7 +2,7 @@ import argparse
 import os.path
 import sys
 
-from dectree.codegen import CONFIG_DEFAULTS, VECTORIZE_PROP
+from dectree.config import CONFIG_DEFAULTS, VECTORIZE_PROP
 from dectree.transpiler import transpile
 
 
