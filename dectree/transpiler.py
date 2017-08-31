@@ -30,7 +30,7 @@ def compile(src_file, **options: Dict[str, Any]) -> Tuple[Any, ...]:
         params = Params()
         # set inputs members here
         # set params members here
-        FUNCTION(inputs, outputs, params)
+        apply_rules(inputs, outputs, params)
         # get outputs members here
 
     :param src_file: A file descriptor or a path-like object to the decision tree definition source file (YAML format)
