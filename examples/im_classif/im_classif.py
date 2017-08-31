@@ -57,22 +57,22 @@ def _Certainty_TRUE(x):
     return 1.0
 
 
-_InputSpec = [
+_InputsSpec = [
     ("red", float64[:]),
     ("green", float64[:]),
     ("blue", float64[:]),
 ]
 
 
-@jitclass(_InputSpec)
-class Input:
+@jitclass(_InputsSpec)
+class Inputs:
     def __init__(self):
         self.red = np.zeros(1, dtype=np.float64)
         self.green = np.zeros(1, dtype=np.float64)
         self.blue = np.zeros(1, dtype=np.float64)
 
 
-_OutputSpec = [
+_OutputsSpec = [
     ("grey", float64[:]),
     ("yellow", float64[:]),
     ("dark_red", float64[:]),
@@ -82,8 +82,8 @@ _OutputSpec = [
 ]
 
 
-@jitclass(_OutputSpec)
-class Output:
+@jitclass(_OutputsSpec)
+class Outputs:
     def __init__(self):
         self.grey = np.zeros(1, dtype=np.float64)
         self.yellow = np.zeros(1, dtype=np.float64)

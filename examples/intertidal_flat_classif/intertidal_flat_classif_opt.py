@@ -326,7 +326,7 @@ def _Class_TRUE(x):
     return 1.0
 
 
-_InputSpec = [
+_InputsSpec = [
     ("b1", float64[:]),
     ("b2", float64[:]),
     ("b3", float64[:]),
@@ -346,8 +346,8 @@ _InputSpec = [
 ]
 
 
-@jitclass(_InputSpec)
-class Input:
+@jitclass(_InputsSpec)
+class Inputs:
     def __init__(self, size: int):
         self.b1 = np.zeros(size, dtype=np.float64)
         self.b2 = np.zeros(size, dtype=np.float64)
@@ -367,7 +367,7 @@ class Input:
         self.bsum = np.zeros(size, dtype=np.float64)
 
 
-_OutputSpec = [
+_OutputsSpec = [
     ("nodata", float64[:]),
     ("Wasser", float64[:]),
     ("Schill", float64[:]),
@@ -384,8 +384,8 @@ _OutputSpec = [
 ]
 
 
-@jitclass(_OutputSpec)
-class Output:
+@jitclass(_OutputsSpec)
+class Outputs:
     def __init__(self, size: int):
         self.nodata = np.zeros(size, dtype=np.float64)
         self.Wasser = np.zeros(size, dtype=np.float64)
@@ -403,7 +403,7 @@ class Output:
 
 
 @jit(nopython=True)
-def apply_rules(input: Input, output: Output):
+def apply_rules(input: Inputs, output: Outputs):
     for i in range(len(output.nodata)):
         t0 = 1.0
         #    if b4 is NODATA:
