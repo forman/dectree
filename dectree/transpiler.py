@@ -15,10 +15,28 @@ from .config import CONFIG_NAME_FUNCTION_NAME, CONFIG_NAME_INPUTS_NAME, CONFIG_N
     CONFIG_NAME_PARAMS_NAME, CONFIG_NAME_PARAMETERIZE, get_config_value
 from .types import TypeDefs
 
-_builtin_compile = compile
-
 
 def compile(src_file, **options: Dict[str, Any]) -> Tuple[Any, ...]:
+    """
+    Generate a decision tree function by compiling *src_file* using the given options.
+    Return a tuple (function, Inputs, Outputs). If option ``parameterize`` is set,
+    return (function, Inputs, Outputs, Params).
+
+    Usage:::
+
+        apply_rules, Inputs, Outputs, Params = compile(src_file, parameterize=True)
+        inputs = Inputs()
+        outputs = Outputs()
+        params = Params()
+        # set inputs members here
+        # set params members here
+        FUNCTION(inputs, outputs, params)
+        # get outputs members here
+
+    :param src_file: A file descriptor or a path-like object to the decision tree definition source file (YAML format)
+    :param options: Compiler/Transpiler options
+    :return: A tuple containing the compiler function and the classes used to generate the functions's arguments.
+    """
     text_io = StringIO()
     transpile(src_file, text_io, **options)
 
@@ -41,10 +59,11 @@ def compile(src_file, **options: Dict[str, Any]) -> Tuple[Any, ...]:
 def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
     """
     Generate a decision tree function by transpiling *src_file* to *out_file* using the given *options*.
+    Return the generated output file, if any, otherwise return None.
 
     :param src_file: A file descriptor or a path-like object to the decision tree definition source file (YAML format)
     :param out_file: A file descriptor or a path-like object to the module output file (Python)
-    :param options: Transpiler options
+    :param options: Compiler/Transpiler options
     :return: A path to the written module output file (Python) or None if *out_file* is a file descriptor
     """
 
