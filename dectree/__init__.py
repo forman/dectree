@@ -1,3 +1,4 @@
 from .codegen import gen_code
-from .transpiler import transpile, compile
+from .compiler import compile
+from .transpiler import transpile
 from .propfuncs import *

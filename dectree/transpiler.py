@@ -1,9 +1,6 @@
 import os
 import os.path
-import sys
-import tempfile
 from collections import OrderedDict
-from io import StringIO
 from typing import List, Dict, Any, Tuple, Union
 
 # noinspection PyPackageRequirements
@@ -11,40 +8,17 @@ import yaml  # from pyyaml
 
 import dectree.propfuncs as propfuncs
 from .codegen import gen_code
-from .config import CONFIG_NAME_FUNCTION_NAME, CONFIG_NAME_INPUTS_NAME, CONFIG_NAME_OUTPUTS_NAME, \
-    CONFIG_NAME_PARAMS_NAME, CONFIG_NAME_PARAMETERIZE, get_config_value
 from .types import TypeDefs
-
-_builtin_compile = compile
-
-
-def compile(src_file, **options: Dict[str, Any]) -> Tuple[Any, ...]:
-    text_io = StringIO()
-    transpile(src_file, text_io, **options)
-
-    py_code = text_io.getvalue()
-
-    _, out_path = tempfile.mkstemp(suffix='.py', prefix='dectree_', text=True)
-    with open(out_path, 'w') as out_fp:
-        out_fp.write(py_code)
-
-    dectree_module = _import_module_from_file(out_path)
-
-    names = [CONFIG_NAME_FUNCTION_NAME, CONFIG_NAME_INPUTS_NAME, CONFIG_NAME_OUTPUTS_NAME]
-    if get_config_value(options, CONFIG_NAME_PARAMETERIZE):
-        names += [CONFIG_NAME_PARAMS_NAME]
-    names = [get_config_value(options, name) for name in names]
-
-    return tuple(getattr(dectree_module, name) for name in names)
 
 
 def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
     """
     Generate a decision tree function by transpiling *src_file* to *out_file* using the given *options*.
+    Return the path to the generated file, if any, otherwise return ``None``.
 
     :param src_file: A file descriptor or a path-like object to the decision tree definition source file (YAML format)
     :param out_file: A file descriptor or a path-like object to the module output file (Python)
-    :param options: Transpiler options
+    :param options: options, refer to `dectree --help`
     :return: A path to the written module output file (Python) or None if *out_file* is a file descriptor
     """
 
@@ -253,16 +227,3 @@ def _is_list_of_one_key_dicts(l):
     except (AttributeError, TypeError):
         return False
     return True
-
-
-def _import_module_from_file(full_path_to_module: str):
-    module_dir, module_file = os.path.split(full_path_to_module)
-    module_name, module_ext = os.path.splitext(module_file)
-    try:
-        sys.path.append(module_dir)
-        module_obj = __import__(module_name)
-        module_obj.__file__ = full_path_to_module
-        globals()[module_name] = module_obj
-        return module_obj
-    finally:
-        sys.path.remove(module_dir)

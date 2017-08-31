@@ -171,6 +171,7 @@ class CodeGen:
                     param_values[qualified_param_name] = param_value
         self._write_class(self.params_name, param_names, param_values)
 
+    # See http://numba.pydata.org/numba-doc/dev/user/jitclass.html
     def _write_class(self, class_name, var_names, param_values: Optional[Dict[str, Any]] = None):
         is_io = param_values is None
 

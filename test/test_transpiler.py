@@ -1,12 +1,12 @@
-import unittest
 import os.path
-import numpy as np
-from dectree.codegen import VECTORIZE_PROP, ExprGen
-from dectree.transpiler import transpile, compile
+import unittest
 from io import StringIO
 
+import numpy as np
 
-# http://numba.pydata.org/numba-doc/dev/user/jitclass.html
+from dectree.compiler import compile
+from dectree.config import VECTORIZE_PROP
+from dectree.transpiler import transpile
 
 
 def get_src(no1='false()', a='a', p1='P1', b='b', no2='NO'):
@@ -207,4 +207,3 @@ def eval_func(f, x):
     exec(code, None, local_vars)
     y = local_vars['y']
     return y(x)
-
