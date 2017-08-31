@@ -1,4 +1,7 @@
+import os
 import os.path
+import sys
+import tempfile
 from collections import OrderedDict
 from io import StringIO
 from typing import List, Dict, Any, Tuple, Union
@@ -20,17 +23,19 @@ def compile(src_file, **options: Dict[str, Any]) -> Tuple[Any, ...]:
     transpile(src_file, text_io, **options)
 
     py_code = text_io.getvalue()
-    local_vars = {}
 
-    compiled_py_code = _builtin_compile(py_code, '<string>', 'exec')
-    exec(compiled_py_code, None, local_vars)
+    _, out_path = tempfile.mkstemp(suffix='.py', prefix='dectree_', text=True)
+    with open(out_path, 'w') as out_fp:
+        out_fp.write(py_code)
+
+    dectree_module = _import_module_from_file(out_path)
 
     names = [CONFIG_NAME_FUNCTION_NAME, CONFIG_NAME_INPUTS_NAME, CONFIG_NAME_OUTPUTS_NAME]
     if get_config_value(options, CONFIG_NAME_PARAMETERIZE):
         names += [CONFIG_NAME_PARAMS_NAME]
     names = [get_config_value(options, name) for name in names]
 
-    return tuple(local_vars[name] for name in names)
+    return tuple(getattr(dectree_module, name) for name in names)
 
 
 def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
@@ -248,3 +253,16 @@ def _is_list_of_one_key_dicts(l):
     except (AttributeError, TypeError):
         return False
     return True
+
+
+def _import_module_from_file(full_path_to_module: str):
+    module_dir, module_file = os.path.split(full_path_to_module)
+    module_name, module_ext = os.path.splitext(module_file)
+    try:
+        sys.path.append(module_dir)
+        module_obj = __import__(module_name)
+        module_obj.__file__ = full_path_to_module
+        globals()[module_name] = module_obj
+        return module_obj
+    finally:
+        sys.path.remove(module_dir)

@@ -122,6 +122,21 @@ class TranspileTest(unittest.TestCase):
         self.assertAlmostEqual(outputs.cloudy, 0.6)
         self.assertAlmostEqual(outputs.certain, 1.0)
 
+    def test_compile_with_defaults(self):
+        src_file = os.path.join(os.path.dirname(__file__), 'dectree_test.yml')
+        apply_rules, Inputs, Outputs = compile(src_file)
+        self.assertIsNotNone(apply_rules)
+        self.assertIsNotNone(Inputs)
+        self.assertIsNotNone(Outputs)
+        inputs = Inputs()
+        outputs = Outputs()
+
+        inputs.glint = 0.2
+        inputs.radiance = 60.
+        apply_rules(inputs, outputs)
+        self.assertAlmostEqual(outputs.cloudy, 0.6)
+        self.assertAlmostEqual(outputs.certain, 1.0)
+
     def test_transpile_parameterized(self):
         src_file = os.path.join(os.path.dirname(__file__), 'dectree_test.yml')
         out_file = os.path.join(os.path.dirname(__file__), 'dectree_test_p.py')
@@ -142,6 +157,23 @@ class TranspileTest(unittest.TestCase):
         inputs.glint = 0.2
         inputs.radiance = 60.
         m.dectree_test_p.apply_rules(inputs, outputs, params)
+        self.assertAlmostEqual(outputs.cloudy, 0.6)
+        self.assertAlmostEqual(outputs.certain, 1.0)
+
+    def test_compile_parameterized(self):
+        src_file = os.path.join(os.path.dirname(__file__), 'dectree_test.yml')
+        apply_rules, Inputs, Outputs, Params = compile(src_file, parameterize=True)
+        self.assertIsNotNone(apply_rules)
+        self.assertIsNotNone(Inputs)
+        self.assertIsNotNone(Outputs)
+        self.assertIsNotNone(Params)
+        inputs = Inputs()
+        outputs = Outputs()
+        params = Params()
+
+        inputs.glint = 0.2
+        inputs.radiance = 60.
+        apply_rules(inputs, outputs, params)
         self.assertAlmostEqual(outputs.cloudy, 0.6)
         self.assertAlmostEqual(outputs.certain, 1.0)
 
@@ -268,34 +300,3 @@ class ConditionTranspilerTest(unittest.TestCase):
         self.assertTrue(str(cm.exception) != '')
 
 
-    def test_compile_with_defaults(self):
-        src_file = os.path.join(os.path.dirname(__file__), 'dectree_test.yml')
-        apply_rules, Inputs, Outputs = compile(src_file)
-        self.assertIsNotNone(apply_rules)
-        self.assertIsNotNone(Inputs)
-        self.assertIsNotNone(Outputs)
-        inputs = Inputs()
-        outputs = Outputs()
-
-        inputs.glint = 0.2
-        inputs.radiance = 60.
-        apply_rules(inputs, outputs)
-        self.assertAlmostEqual(outputs.cloudy, 0.6)
-        self.assertAlmostEqual(outputs.certain, 1.0)
-
-    def test_compile_parameterized(self):
-        src_file = os.path.join(os.path.dirname(__file__), 'dectree_test.yml')
-        apply_rules, Inputs, Outputs, Params = compile(src_file, parameterize=True)
-        self.assertIsNotNone(apply_rules)
-        self.assertIsNotNone(Inputs)
-        self.assertIsNotNone(Outputs)
-        self.assertIsNotNone(Params)
-        inputs = Inputs()
-        outputs = Outputs()
-        params = Params()
-
-        inputs.glint = 0.2
-        inputs.radiance = 60.
-        apply_rules(inputs, outputs, params)
-        self.assertAlmostEqual(outputs.cloudy, 0.6)
-        self.assertAlmostEqual(outputs.certain, 1.0)
