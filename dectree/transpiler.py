@@ -13,7 +13,7 @@ import dectree.propfuncs as propfuncs
 from .codegen import gen_code
 from .config import CONFIG_NAME_FUNCTION_NAME, CONFIG_NAME_INPUTS_NAME, CONFIG_NAME_OUTPUTS_NAME, \
     CONFIG_NAME_PARAMS_NAME, CONFIG_NAME_PARAMETERIZE, get_config_value
-from .types import TypeDefs
+from .types import TypeDefs, DerivedDef, DerivedDefs
 
 
 def compile(src_file, **options: Dict[str, Any]) -> Tuple[Any, ...]:
@@ -85,16 +85,21 @@ def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
 
     _validate_src_code(src_code)
 
-    types = _normalize_types(_to_omap(src_code['types'], recursive=True))
+    type_defs = _normalize_types(_to_omap(src_code['types'], recursive=True))
     input_defs = _to_omap(src_code['inputs'])
-    derived_defs = _to_omap(src_code.get('derived'))
     output_defs = _to_omap(src_code['outputs'])
+    derived_defs = _parse_raw_var_assignments(_to_omap(src_code.get('derived')) or {})
     rules = _normalize_rules(src_code['rules'])
 
     src_options = dict(src_code.get('options') or {})
     src_options.update(options or {})
 
-    py_code = gen_code(types, input_defs, derived_defs, output_defs, rules, **src_options)
+    py_code = gen_code(type_defs,
+                       input_defs,
+                       output_defs,
+                       derived_defs,
+                       rules,
+                       **src_options)
 
     if out_file:
         try:
@@ -119,7 +124,7 @@ def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
 
 def _validate_src_code(src_code):
     required_sections = ('types', 'inputs', 'outputs', 'rules')
-    possible_sections = required_sections + ('computed', 'options')
+    possible_sections = required_sections + ('derived', 'options')
     for section in required_sections:
         if section not in src_code:
             raise ValueError('Invalid decision tree definition: missing section "{}"'.format(section))
@@ -145,6 +150,22 @@ def _normalize_types(types: Dict[str, Dict[str, str]]) -> TypeDefs:
             func_params, func_body = prop_result
             type_def[prop_name] = prop_value, func_params, func_body
     return type_defs
+
+
+def _parse_raw_var_assignments(raw_var_assignments: Dict[str, str]) -> DerivedDefs:
+    var_assignments = []
+    for raw_var_assignment, var_type in raw_var_assignments.items():
+        if not var_type:
+            raise ValueError('illegal variable assignment: "{}: {}"'.format(raw_var_assignment, var_type))
+        assignment_tokens = raw_var_assignment.split(None, 2)
+        if len(assignment_tokens) != 3 \
+                or not assignment_tokens[0] \
+                or assignment_tokens[1] != '=' \
+                or not assignment_tokens[2]:
+            raise ValueError('illegal variable assignment: "{}"'.format(raw_var_assignment))
+        var_name, _, expr = assignment_tokens
+        var_assignments.append((var_name, var_type, expr))
+    return var_assignments
 
 
 def _normalize_rules(raw_rules):

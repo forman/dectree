@@ -1,4 +1,6 @@
 
+import math
+
 from numba import jit, jitclass, float64, vectorize
 import numpy as np
 
@@ -79,6 +81,7 @@ _OutputsSpec = [
     ("dark", float64[:]),
     ("not_dark", float64[:]),
     ("cloudy", float64[:]),
+    ("mean", float64[:]),
 ]
 
 
@@ -91,15 +94,22 @@ class Outputs:
         self.dark = np.zeros(1, dtype=np.float64)
         self.not_dark = np.zeros(1, dtype=np.float64)
         self.cloudy = np.zeros(1, dtype=np.float64)
+        self.mean = np.zeros(1, dtype=np.float64)
 
 
 @jit(nopython=True)
 def apply_rules(inputs, outputs):
     t0 = 1.0
+    #    mean = (red + green + sin(blue)) / 3: Radiance
+    outputs.mean = (inputs.red + inputs.green + np.sin(inputs.blue)) / 3
+    #    if mean is VERY_HIGH:
+    t1 = np.minimum(t0, _Radiance_VERY_HIGH(outputs.mean))
+    #        cloudy = TRUE
+    outputs.cloudy = t1
     #    if red is VERY_HIGH and green is VERY_HIGH and blue is VERY_HIGH:
     t1 = np.minimum(t0, np.minimum(np.minimum(_Radiance_VERY_HIGH(inputs.red), _Radiance_VERY_HIGH(inputs.green)), _Radiance_VERY_HIGH(inputs.blue)))
     #        cloudy = TRUE
-    outputs.cloudy = t1
+    outputs.cloudy = np.maximum(outputs.cloudy, t1)
     #    if red is MIDDLE and green is MIDDLE and blue is MIDDLE:
     t1 = np.minimum(t0, np.minimum(np.minimum(_Radiance_MIDDLE(inputs.red), _Radiance_MIDDLE(inputs.green)), _Radiance_MIDDLE(inputs.blue)))
     #        grey = TRUE

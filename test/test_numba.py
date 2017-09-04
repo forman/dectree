@@ -4,6 +4,13 @@ from numba import vectorize, float64
 import numpy as np
 
 
+import xarray
+
+x = np.array([1,2,3,4])
+y = xarray.ufuncs.sin(x)
+y = np.sin(x)
+
+
 @vectorize([float64(float64)])
 def _radiance_middle(x):
     # Radiance.MIDDLE: triangle(x1=30, x2=50, x3=100)

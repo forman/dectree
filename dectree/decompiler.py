@@ -1,111 +1,86 @@
 import ast
-import unittest
 
 
-class AstTest(unittest.TestCase):
-    def test_unary(self):
-        self.assertEqual(transform_expr('-(-+(-x))'), '--+-x')
-        self.assertEqual(transform_expr('-((a-b)-c)'), '-(a - b - c)')
-        self.assertEqual(transform_expr('not x'), 'not x')
-        self.assertEqual(transform_expr('not -x'), 'not -x')
-        self.assertEqual(transform_expr('not not x'), 'not not x')
-
-    def test_binary(self):
-        self.assertEqual(transform_expr('a-b-c-d'), 'a - b - c - d')
-        self.assertEqual(transform_expr('(a-b)-c-d'), 'a - b - c - d')
-        self.assertEqual(transform_expr('(a-b-c)-d'), 'a - b - c - d')
-        self.assertEqual(transform_expr('a-(b-c)-d'), 'a - (b - c) - d')
-        self.assertEqual(transform_expr('a-(b-c-d)'), 'a - (b - c - d)')
-        self.assertEqual(transform_expr('a-b-(c-d)'), 'a - b - (c - d)')
-        self.assertEqual(transform_expr('a-(b-(c-d))'), 'a - (b - (c - d))')
-        self.assertEqual(transform_expr('(a-(b-c))-d'), 'a - (b - c) - d')
-
-        self.assertEqual(transform_expr('a----b'), 'a - ---b')
-        self.assertEqual(transform_expr('---a-b'), '---a - b')
-
-        self.assertEqual(transform_expr('a*b+c/d'), 'a * b + c / d')
-        self.assertEqual(transform_expr('a+b*c-d'), 'a + b * c - d')
-        self.assertEqual(transform_expr('(a+b)*(c-d)'), '(a + b) * (c - d)')
-
-    def test_bool(self):
-        self.assertEqual(transform_expr('a and b and c'), 'a and b and c')
-        self.assertEqual(transform_expr('(a and b) and c'), 'a and b and c')
-        self.assertEqual(transform_expr('a and (b and c)'), 'a and (b and c)')
-
-        self.assertEqual(transform_expr('a and b or c and d'), 'a and b or c and d')
-        self.assertEqual(transform_expr('a or b and c or d'), 'a or b and c or d')
-        self.assertEqual(transform_expr('(a or b) and (c or d)'), '(a or b) and (c or d)')
-        self.assertEqual(transform_expr('(a or b) and not (c or not d)'), '(a or b) and not (c or not d)')
-
-    def test_compare(self):
-        self.assertEqual(transform_expr('a < 2'), 'a < 2')
-        self.assertEqual(transform_expr('a >= 2 == b'), 'a < 2 == b')
-
-    def test_mixed(self):
-        self.assertEqual(transform_expr('a+sin(x + 2.8)'), 'a + sin(x + 2.8)')
-        self.assertEqual(transform_expr('a+max(1, sin(x+2.8), x**0.5)'), 'a + max(1, sin(x + 2.8), x ** 0.5)')
-
-
-def transform_expr(expr: str) -> str:
-    transformer = ExprDecompiler()
-    return transformer.transform(ast.parse(expr))
-
-
+# noinspection PyMethodMayBeStatic
 class ExprDecompiler:
     """
+    Decompiles an AST expression into a text string.
+    Decompilation is performed by calling the ``decompile(expr)`` method with an AST expression ``expr``.
+    Decompilation can be customized by overriding various methods of the form ``transform_<part>(...)``.
+
     See https://greentreesnakes.readthedocs.io/en/latest/nodes.html#expressions
     """
-    _KEYWORDS = {'and', 'or', 'not', 'True', 'False', 'None'}
+
+    _KEYWORDS = {'in', 'not in', 'is', 'is not', 'and', 'or', 'not', 'True', 'False', 'None'}
 
     _OP_INFOS = {
-        ast.Or: ('or', 100, 'L'),
-        ast.And: ('and', 200, 'L'),
-        ast.Not: ('not', 300, None),
-        ast.UAdd: ('+', 500, None),
-        ast.USub: ('-', 500, None),
-        ast.Add: ('+', 500, 'E'),
-        ast.Sub: ('-', 500, 'L'),
-        ast.Mult: ('*', 600, 'E'),
-        ast.Div: ('/', 600, 'L'),
-        ast.FloorDiv: ('//', 600, 'L'),
-        ast.Mod: ('%', 600, 'L'),
-        ast.Pow: ('**', 700, 'L'),
+
+        ast.Eq: ('==', 100, 'R'),
+        ast.NotEq: ('!=', 100, 'R'),
+        ast.Lt: ('<', 100, 'R'),
+        ast.LtE: ('<=', 100, 'R'),
+        ast.Gt: ('>', 100, 'R'),
+        ast.GtE: ('>=', 100, 'R'),
+        ast.Is: ('is', 100, 'R'),
+        ast.IsNot: ('is not', 100, 'R'),
+        ast.In: ('in', 100, 'R'),
+        ast.NotIn: ('not in', 100, 'R'),
+
+        ast.Or: ('or', 300, 'L'),
+        ast.And: ('and', 400, 'L'),
+        ast.Not: ('not', 500, None),
+
+        ast.UAdd: ('+', 600, None),
+        ast.USub: ('-', 600, None),
+
+        ast.Add: ('+', 600, 'E'),
+        ast.Sub: ('-', 600, 'L'),
+        ast.Mult: ('*', 700, 'E'),
+        ast.Div: ('/', 700, 'L'),
+        ast.FloorDiv: ('//', 700, 'L'),
+        ast.Mod: ('%', 800, 'L'),
+        ast.Pow: ('**', 900, 'L'),
     }
+
     @classmethod
     def get_op_info(cls, op: ast.AST):
         return cls._OP_INFOS.get(type(op), (None, None, None))
 
-    def transform(self, node: ast.expr) -> str:
+    def decompile(self, node: ast.AST) -> str:
+        return self._transform(node)
+
+    def _transform(self, node: ast.AST) -> str:
         if isinstance(node, ast.Module):
-            return self.transform(node.body[0])
+            return self._transform(node.body[0])
         if isinstance(node, ast.Expr):
-            return self.transform(node.value)
+            return self._transform(node.value)
         if isinstance(node, ast.Name):
             return self.transform_name(node)
         if isinstance(node, ast.Attribute):
             pat = self.transform_attribute(node.value, node.attr, node.ctx)
-            x = self.transform(node.value)
+            x = self._transform(node.value)
             return pat.format(x=x)
         if isinstance(node, ast.Call):
             pat = self.transform_call(node.func, node.args)
-            xes = {'x%s' % i: self.transform(node.args[i]) for i in range(len(node.args))}
+            xes = {'x%s' % i: self._transform(node.args[i]) for i in range(len(node.args))}
             return pat.format(**xes)
         if isinstance(node, ast.UnaryOp):
             pat = self.transform_unary_op(node.op, node.operand)
-            arg = self.transform(node.operand)
+            arg = self._transform(node.operand)
             return pat.format(x=arg)
         if isinstance(node, ast.BinOp):
             pat = self.transform_bin_op(node.op, node.left, node.right)
-            x = self.transform(node.left)
-            y = self.transform(node.right)
+            x = self._transform(node.left)
+            y = self._transform(node.right)
             return pat.format(x=x, y=y)
         if isinstance(node, ast.BoolOp):
             pat = self.transform_bool_op(node.op, node.values)
-            xes = {'x%s' % i: self.transform(node.values[i]) for i in range(len(node.values))}
+            xes = {'x%s' % i: self._transform(node.values[i]) for i in range(len(node.values))}
             return pat.format(**xes)
         if isinstance(node, ast.Compare):
             pat = self.transform_compare(node.left, node.ops, node.comparators)
-            xes = {'x%s' % i: self.transform(node.values[i]) for i in range(len(node.values))}
+            xes = {'x0': self._transform(node.left)}
+            xes.update({'x%s' % (i + 1): self._transform(node.comparators[i]) for i in range(len(node.comparators))})
             return pat.format(**xes)
         if isinstance(node, ast.Num):
             return str(node.n)
@@ -114,11 +89,14 @@ class ExprDecompiler:
         raise ValueError('unrecognized expression node: %s' % node.__class__.__name__)
 
     def transform_name(self, name: ast.Name):
-        return "%s" % name.id
+        return name.id
 
     def transform_call(self, func: ast.Name, args):
         args = ', '.join(['{x%d}' % i for i in range(len(args))])
-        return "%s(%s)" % (func.id, args)
+        return "%s(%s)" % (self.transform_function_name(func), args)
+
+    def transform_function_name(self, func: ast.Name):
+        return func.id
 
     def transform_attribute(self, value: ast.AST, attr: str, ctx):
         return "{x}.%s" % attr
@@ -181,7 +159,6 @@ class ExprDecompiler:
 
     # Compare(left, ops, comparators
     def transform_compare(self, left, ops, comparators):
-
 
         parts = []
         for i in range(len(ops)):

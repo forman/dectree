@@ -1,7 +1,7 @@
 import unittest
 import os.path
 import numpy as np
-from dectree.codegen import VECTORIZE_PROP, ExprGen
+from dectree.codegen import VECTORIZE_PROP, FuzzyExprGen
 from dectree.transpiler import transpile, compile
 from io import StringIO
 
