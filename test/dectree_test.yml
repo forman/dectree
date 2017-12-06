@@ -32,22 +32,28 @@ types:
     LOW: false()
 
 inputs:
-  - glint: Glint
-  - radiance: Radiance
+  glint: Glint
+  radiance: Radiance
 
 outputs:
   cloudy: Cloudy
   certain: Certain
 
+derived:
+  radiance_mod = sqrt(1.0 + radiance * radiance): Radiance
+
 rules:
-  -
-    - if radiance == HIGH or radiance == MIDDLE:
-      - if glint == LOW:
-        - cloudy = YES
-        - certain = HIGH
-      - else:
-        - if glint == HIGH:
-          - certain = LOW
-    - else:
-      - certain = HIGH
+  - |
+    if radiance == HIGH or radiance == MIDDLE:
+      if glint == LOW:
+        cloudy = YES
+        certain = HIGH
+      else:
+        if glint == HIGH:
+          certain = LOW
+    else if radiance_mod == HIGH:
+      cloudy = YES
+      certain = LOW
+    else:
+      certain = HIGH
 
