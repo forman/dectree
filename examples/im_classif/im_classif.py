@@ -100,8 +100,8 @@ class Outputs:
 @jit(nopython=True)
 def apply_rules(inputs, outputs):
     t0 = 1.0
-    #    mean = (red + green + sin(blue)) / 3: Radiance
-    outputs.mean = (inputs.red + inputs.green + np.sin(inputs.blue)) / 3
+    #    mean = (red + green + blue) / 3: Radiance
+    outputs.mean = (inputs.red + inputs.green + inputs.blue) / 3
     #    if mean is VERY_HIGH:
     t1 = np.minimum(t0, _Radiance_VERY_HIGH(outputs.mean))
     #        cloudy = TRUE
