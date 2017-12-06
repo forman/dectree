@@ -13,6 +13,8 @@ from .config import get_config_value, \
 from .types import VarName, PropName, TypeName, PropDef, TypeDefs, VarDefs, \
     PropFuncParamName, DerivedDefs, DerivedDef, Rules, RuleBody
 
+BUILT_IN_SCALAR_TYPES = {'float', 'int', 'boolean'}
+
 
 def gen_code(type_defs: TypeDefs,
              input_defs: VarDefs,
@@ -367,7 +369,7 @@ class CodeGen:
 
     def _check_var_types(self, var_defs):
         for var_name, var_type in var_defs.items():
-            if var_type not in self.type_defs:
+            if var_type not in self.type_defs and var_type not in BUILT_IN_SCALAR_TYPES:
                 raise ValueError('Type "{}" of variable "{}" is undefined'.format(var_type, var_name))
 
 
