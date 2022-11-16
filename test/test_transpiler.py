@@ -56,19 +56,27 @@ class TranspileTest(unittest.TestCase):
         out_file = StringIO()
         with self.assertRaises(ValueError) as cm:
             transpile(src_file, out_file=out_file)
-        self.assertEqual(str(cm.exception), 'Empty decision tree definition')
+        self.assertEqual(str(cm.exception),
+                         'Empty decision tree definition')
 
         src_file = StringIO("types:\n    ")
         out_file = StringIO()
         with self.assertRaises(ValueError) as cm:
             transpile(src_file, out_file=out_file)
-        self.assertEqual(str(cm.exception), 'Invalid decision tree definition: section "types" is empty')
+        self.assertEqual(str(cm.exception),
+                         'Invalid decision tree definition:'
+                         ' section "types" is empty')
 
-        src_file = StringIO("types: null\ninputs: null\noutputs: null\nrules: null\n")
+        src_file = StringIO("types: null\n"
+                            "inputs: null\n"
+                            "outputs: null\n"
+                            "rules: null\n")
         out_file = StringIO()
         with self.assertRaises(ValueError) as cm:
             transpile(src_file, out_file=out_file)
-        self.assertEqual(str(cm.exception), 'Invalid decision tree definition: section "types" is empty')
+        self.assertEqual(str(cm.exception),
+                         'Invalid decision tree definition:'
+                         ' section "types" is empty')
 
         src_file = StringIO(get_src(a='u'))
         out_file = StringIO()
@@ -86,23 +94,30 @@ class TranspileTest(unittest.TestCase):
         out_file = StringIO()
         with self.assertRaises(ValueError) as cm:
             transpile(src_file, out_file=out_file)
-        self.assertEqual(str(cm.exception), 'Illegal value for property "NO" of type "P2": False')
+        self.assertEqual(str(cm.exception),
+                         'Illegal value for property "NO" of type "P2":'
+                         ' False')
 
         src_file = StringIO(get_src(p1='Radiance'))
         out_file = StringIO()
         with self.assertRaises(ValueError) as cm:
             transpile(src_file, out_file=out_file)
-        self.assertEqual(str(cm.exception), 'Type "Radiance" of variable "a" is undefined')
+        self.assertEqual(str(cm.exception),
+                         'Type "Radiance" of variable "a" is undefined')
 
         src_file = StringIO(get_src(no2='Radiance'))
         out_file = StringIO()
         with self.assertRaises(ValueError) as cm:
             transpile(src_file, out_file=out_file)
-        self.assertEqual(str(cm.exception), '"Radiance" is not a property of type "P2" of variable "b"')
+        self.assertEqual(str(cm.exception),
+                         '"Radiance" is not a property of type'
+                         ' "P2" of variable "b"')
 
     def test_transpile_with_defaults(self):
-        src_file = os.path.join(os.path.dirname(__file__), 'dectree_test.yml')
-        out_file = os.path.join(os.path.dirname(__file__), 'dectree_test.py')
+        src_file = os.path.join(os.path.dirname(__file__),
+                                'dectree_test.yml')
+        out_file = os.path.join(os.path.dirname(__file__),
+                                'dectree_test.py')
         if os.path.exists(out_file):
             os.remove(out_file)
         transpile(src_file)
@@ -122,7 +137,8 @@ class TranspileTest(unittest.TestCase):
         self.assertAlmostEqual(outputs.certain, 1.0)
 
     def test_compile_with_defaults(self):
-        src_file = os.path.join(os.path.dirname(__file__), 'dectree_test.yml')
+        src_file = os.path.join(os.path.dirname(__file__),
+                                'dectree_test.yml')
         apply_rules, Inputs, Outputs = compile(src_file)
         self.assertIsNotNone(apply_rules)
         self.assertIsNotNone(Inputs)
@@ -137,8 +153,10 @@ class TranspileTest(unittest.TestCase):
         self.assertAlmostEqual(outputs.certain, 1.0)
 
     def test_transpile_parameterized(self):
-        src_file = os.path.join(os.path.dirname(__file__), 'dectree_test.yml')
-        out_file = os.path.join(os.path.dirname(__file__), 'dectree_test_p.py')
+        src_file = os.path.join(os.path.dirname(__file__),
+                                'dectree_test.yml')
+        out_file = os.path.join(os.path.dirname(__file__),
+                                'dectree_test_p.py')
         if os.path.exists(out_file):
             os.remove(out_file)
         transpile(src_file, out_file=out_file, parameterize=True)
@@ -160,8 +178,10 @@ class TranspileTest(unittest.TestCase):
         self.assertAlmostEqual(outputs.certain, 1.0)
 
     def test_compile_parameterized(self):
-        src_file = os.path.join(os.path.dirname(__file__), 'dectree_test.yml')
-        apply_rules, Inputs, Outputs, Params = compile(src_file, parameterize=True)
+        src_file = os.path.join(os.path.dirname(__file__),
+                                'dectree_test.yml')
+        apply_rules, Inputs, Outputs, Params = compile(src_file,
+                                                       parameterize=True)
         self.assertIsNotNone(apply_rules)
         self.assertIsNotNone(Inputs)
         self.assertIsNotNone(Outputs)
@@ -177,8 +197,10 @@ class TranspileTest(unittest.TestCase):
         self.assertAlmostEqual(outputs.certain, 1.0)
 
     def test_transpile_vectorized(self):
-        src_file = os.path.join(os.path.dirname(__file__), 'dectree_test.yml')
-        out_file = os.path.join(os.path.dirname(__file__), 'dectree_test_v.py')
+        src_file = os.path.join(os.path.dirname(__file__),
+                                'dectree_test.yml')
+        out_file = os.path.join(os.path.dirname(__file__),
+                                'dectree_test_v.py')
         if os.path.exists(out_file):
             os.remove(out_file)
         transpile(src_file, out_file=out_file, vectorize=VECTORIZE_PROP)
@@ -196,14 +218,4 @@ class TranspileTest(unittest.TestCase):
         m.dectree_test_v.apply_rules(inputs, outputs)
         np.testing.assert_almost_equal(outputs.cloudy, np.array([0.6, 0.0]))
         np.testing.assert_almost_equal(outputs.certain, np.array([1.0, 1.0]))
-
-
-def eval_func(f, x):
-    body = f()
-    code_lines = ["def y(x):"] + list(map(lambda l: '    ' + l, body.split('\n')))
-    code = '\n'.join(code_lines)
-    local_vars = {}
-    exec(code, None, local_vars)
-    y = local_vars['y']
-    return y(x)
 

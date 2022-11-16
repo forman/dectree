@@ -1,5 +1,6 @@
 """
-Define possible functions which may be used as values for property definitions within a fuzzy set.
+Define possible functions which may be used as values for
+property definitions within a fuzzy set.
 """
 
 from .types import PropFuncResult
@@ -69,7 +70,8 @@ def le(x0: float, dx: float = 0.0) -> PropFuncResult:
     return _less_op('<=', x0, dx)
 
 
-def ramp(x1: float = 0.0, x2: float = 1.0) -> PropFuncResult:
+def ramp(x1: float = 0.0,
+         x2: float = 1.0) -> PropFuncResult:
     return dict(x1=float(x1), x2=float(x2)), (
         "if x <= {x1}:\n"
         "    return 0.0\n"
@@ -79,7 +81,8 @@ def ramp(x1: float = 0.0, x2: float = 1.0) -> PropFuncResult:
     )
 
 
-def inv_ramp(x1: float = 0.0, x2: float = 1.0) -> PropFuncResult:
+def inv_ramp(x1: float = 0.0,
+             x2: float = 1.0) -> PropFuncResult:
     return dict(x1=float(x1), x2=float(x2)), (
         "if x <= {x1}:\n"
         "    return 1.0\n"
@@ -89,7 +92,9 @@ def inv_ramp(x1: float = 0.0, x2: float = 1.0) -> PropFuncResult:
     )
 
 
-def triangular(x1: float = 0.0, x2: float = 0.5, x3: float = 1.0) -> PropFuncResult:
+def triangular(x1: float = 0.0,
+               x2: float = 0.5,
+               x3: float = 1.0) -> PropFuncResult:
     return dict(x1=float(x1), x2=float(x2), x3=float(x3)), (
         "if x <= {x1}:\n"
         "    return 0.0\n"
@@ -101,7 +106,9 @@ def triangular(x1: float = 0.0, x2: float = 0.5, x3: float = 1.0) -> PropFuncRes
     )
 
 
-def inv_triangular(x1: float = 0.0, x2: float = 0.5, x3: float = 1.0) -> PropFuncResult:
+def inv_triangular(x1: float = 0.0,
+                   x2: float = 0.5,
+                   x3: float = 1.0) -> PropFuncResult:
     return dict(x1=float(x1), x2=float(x2), x3=float(x3)), (
         "if x <= {x1}:\n"
         "    return 1.0\n"
@@ -113,7 +120,10 @@ def inv_triangular(x1: float = 0.0, x2: float = 0.5, x3: float = 1.0) -> PropFun
     )
 
 
-def trapezoid(x1: float = 0.0, x2: float = 1.0 / 3.0, x3: float = 2.0 / 3.0, x4: float = 1.0) -> PropFuncResult:
+def trapezoid(x1: float = 0.0,
+              x2: float = 1.0 / 3.0,
+              x3: float = 2.0 / 3.0,
+              x4: float = 1.0) -> PropFuncResult:
     return dict(x1=float(x1), x2=float(x2), x3=float(x3), x4=float(x4)), (
         "if x <= {x1}:\n"
         "    return 0.0\n"
@@ -127,7 +137,10 @@ def trapezoid(x1: float = 0.0, x2: float = 1.0 / 3.0, x3: float = 2.0 / 3.0, x4:
     )
 
 
-def inv_trapezoid(x1: float = 0.0, x2: float = 1.0 / 3.0, x3: float = 2.0 / 3.0, x4: float = 1.0) -> PropFuncResult:
+def inv_trapezoid(x1: float = 0.0,
+                  x2: float = 1.0 / 3.0,
+                  x3: float = 2.0 / 3.0,
+                  x4: float = 1.0) -> PropFuncResult:
     return dict(x1=float(x1), x2=float(x2), x3=float(x3), x4=float(x4)), (
         "if x <= {x1}:\n"
         "    return 1.0\n"

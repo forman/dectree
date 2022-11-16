@@ -34,10 +34,14 @@ class AstTest(unittest.TestCase):
         self.assertEqual(transform_expr('(a and b) and c'), 'a and b and c')
         self.assertEqual(transform_expr('a and (b and c)'), 'a and (b and c)')
 
-        self.assertEqual(transform_expr('a and b or c and d'), 'a and b or c and d')
-        self.assertEqual(transform_expr('a or b and c or d'), 'a or b and c or d')
-        self.assertEqual(transform_expr('(a or b) and (c or d)'), '(a or b) and (c or d)')
-        self.assertEqual(transform_expr('(a or b) and not (c or not d)'), '(a or b) and not (c or not d)')
+        self.assertEqual(transform_expr('a and b or c and d'),
+                         'a and b or c and d')
+        self.assertEqual(transform_expr('a or b and c or d'),
+                         'a or b and c or d')
+        self.assertEqual(transform_expr('(a or b) and (c or d)'),
+                         '(a or b) and (c or d)')
+        self.assertEqual(transform_expr('(a or b) and not (c or not d)'),
+                         '(a or b) and not (c or not d)')
 
     def test_compare(self):
         self.assertEqual(transform_expr('a < 2'), 'a < 2')
@@ -47,8 +51,10 @@ class AstTest(unittest.TestCase):
         self.assertEqual(transform_expr('a in data'), 'a in data')
 
     def test_mixed(self):
-        self.assertEqual(transform_expr('a+sin(x + 2.8)'), 'a + sin(x + 2.8)')
-        self.assertEqual(transform_expr('a+max(1, sin(x+2.8), x**0.5)'), 'a + max(1, sin(x + 2.8), x ** 0.5)')
+        self.assertEqual(transform_expr('a+sin(x + 2.8)'),
+                         'a + sin(x + 2.8)')
+        self.assertEqual(transform_expr('a+max(1, sin(x+2.8), x**0.5)'),
+                         'a + max(1, sin(x + 2.8), x ** 0.5)')
 
 
 def transform_expr(expr: str) -> str:

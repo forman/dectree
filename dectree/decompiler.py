@@ -1,17 +1,20 @@
 import ast
 
 
-# noinspection PyMethodMayBeStatic
 class ExprDecompiler:
     """
     Decompiles an AST expression into a text string.
-    Decompilation is performed by calling the ``decompile(expr)`` method with an AST expression ``expr``.
-    Decompilation can be customized by overriding various methods of the form ``transform_<part>(...)``.
+    Decompilation is performed by calling the ``decompile(expr)``
+    method with an AST expression ``expr``.
+    Decompilation can be customized by overriding various methods of
+    the form ``transform_<part>(...)``.
 
-    See https://greentreesnakes.readthedocs.io/en/latest/nodes.html#expressions
+    See
+    https://greentreesnakes.readthedocs.io/en/latest/nodes.html#expressions
     """
 
-    _KEYWORDS = {'in', 'not in', 'is', 'is not', 'and', 'or', 'not', 'True', 'False', 'None'}
+    _KEYWORDS = {'in', 'not in', 'is', 'is not',
+                 'and', 'or', 'not', 'True', 'False', 'None'}
 
     _OP_INFOS = {
 
@@ -49,6 +52,7 @@ class ExprDecompiler:
     def decompile(self, node: ast.AST) -> str:
         return self._transform(node)
 
+    # noinspection PyTypeChecker
     def _transform(self, node: ast.AST) -> str:
         if isinstance(node, ast.Module):
             return self._transform(node.body[0])
@@ -62,7 +66,8 @@ class ExprDecompiler:
             return pat.format(x=x)
         if isinstance(node, ast.Call):
             pat = self.transform_call(node.func, node.args)
-            xes = {'x%s' % i: self._transform(node.args[i]) for i in range(len(node.args))}
+            xes = {'x%s' % i: self._transform(node.args[i])
+                   for i in range(len(node.args))}
             return pat.format(**xes)
         if isinstance(node, ast.UnaryOp):
             pat = self.transform_unary_op(node.op, node.operand)
@@ -75,18 +80,23 @@ class ExprDecompiler:
             return pat.format(x=x, y=y)
         if isinstance(node, ast.BoolOp):
             pat = self.transform_bool_op(node.op, node.values)
-            xes = {'x%s' % i: self._transform(node.values[i]) for i in range(len(node.values))}
+            xes = {'x%s' % i: self._transform(node.values[i])
+                   for i in range(len(node.values))}
             return pat.format(**xes)
         if isinstance(node, ast.Compare):
-            pat = self.transform_compare(node.left, node.ops, node.comparators)
+            pat = self.transform_compare(node.left,
+                                         node.ops,
+                                         node.comparators)
             xes = {'x0': self._transform(node.left)}
-            xes.update({'x%s' % (i + 1): self._transform(node.comparators[i]) for i in range(len(node.comparators))})
+            xes.update({'x%s' % (i + 1): self._transform(node.comparators[i])
+                        for i in range(len(node.comparators))})
             return pat.format(**xes)
         if isinstance(node, ast.Num):
             return str(node.n)
         if isinstance(node, ast.NameConstant):
             return str(node.value)
-        raise ValueError('unrecognized expression node: %s' % node.__class__.__name__)
+        raise ValueError(f'unrecognized expression node:'
+                         f' {node.__class__.__name__}')
 
     def transform_name(self, name: ast.Name):
         return name.id
@@ -98,6 +108,7 @@ class ExprDecompiler:
     def transform_function_name(self, func: ast.Name):
         return func.id
 
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def transform_attribute(self, value: ast.AST, attr: str, ctx):
         return "{x}.%s" % attr
 
@@ -109,8 +120,9 @@ class ExprDecompiler:
         right_op = getattr(operand, 'op', None)
         if right_op:
             _, other_precedence, other_assoc = self.get_op_info(right_op)
-            if other_precedence < precedence or other_precedence == precedence \
-                    and other_assoc is not None:
+            if other_precedence < precedence \
+                    or (other_precedence == precedence
+                        and other_assoc is not None):
                 x = '({x})'
 
         if name in self._KEYWORDS:
@@ -127,15 +139,17 @@ class ExprDecompiler:
         left_op = getattr(left, 'op', None)
         if left_op:
             _, other_precedence, other_assoc = self.get_op_info(left_op)
-            if other_precedence < precedence or other_precedence == precedence \
-                    and assoc == 'R' and other_assoc is not None:
+            if other_precedence < precedence \
+                    or (other_precedence == precedence
+                        and assoc == 'R' and other_assoc is not None):
                 x = '({x})'
 
         right_op = getattr(right, 'op', None)
         if right_op:
             _, other_precedence, other_assoc = self.get_op_info(right_op)
-            if other_precedence < precedence or other_precedence == precedence \
-                    and assoc == 'L' and other_assoc is not None:
+            if other_precedence < precedence \
+                    or (other_precedence == precedence
+                        and assoc == 'L' and other_assoc is not None):
                 y = '({y})'
 
         return "%s %s %s" % (x, name, y)
@@ -169,7 +183,8 @@ class ExprDecompiler:
                 x = '{x0}'
                 left_op = getattr(left, 'op', None)
                 if left_op:
-                    name, other_precedence, assoc = ExprDecompiler.get_op_info(left_op)
+                    name, other_precedence, assoc = \
+                        ExprDecompiler.get_op_info(left_op)
                     if other_precedence < precedence:
                         x = '(%s)' % x
                 parts.append(x)

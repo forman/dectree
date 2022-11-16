@@ -4,14 +4,33 @@ from io import StringIO
 from typing import Dict, Any, Tuple, Optional, Union
 
 import dectree.propfuncs as propfuncs
-from dectree.config import CONFIG_NAME_INPUTS_NAME, CONFIG_NAME_OUTPUTS_NAME, CONFIG_NAME_PARAMS_NAME
-from dectree.decompiler import ExprDecompiler
-from .config import get_config_value, \
-    CONFIG_NAME_VECTORIZE, CONFIG_NAME_PARAMETERIZE, CONFIG_NAME_FUNCTION_NAME, CONFIG_NAME_TYPES, VECTORIZE_FUNC, \
-    VECTORIZE_PROP, CONFIG_NAME_OR_PATTERN, CONFIG_NAME_NOT_PATTERN, \
-    CONFIG_NAME_NO_JIT, VECTORIZE_NONE, CONFIG_NAME_AND_PATTERN
-from .types import VarName, PropName, TypeName, PropDef, TypeDefs, VarDefs, \
-    PropFuncParamName, DerivedDefs, DerivedDef, Rules, RuleBody
+from .config import CONFIG_NAME_AND_PATTERN
+from .config import CONFIG_NAME_FUNCTION_NAME
+from .config import CONFIG_NAME_INPUTS_NAME
+from .config import CONFIG_NAME_NOT_PATTERN
+from .config import CONFIG_NAME_NO_JIT
+from .config import CONFIG_NAME_OR_PATTERN
+from .config import CONFIG_NAME_OUTPUTS_NAME
+from .config import CONFIG_NAME_PARAMETERIZE
+from .config import CONFIG_NAME_PARAMS_NAME
+from .config import CONFIG_NAME_TYPES
+from .config import CONFIG_NAME_VECTORIZE
+from .config import VECTORIZE_FUNC
+from .config import VECTORIZE_NONE
+from .config import VECTORIZE_PROP
+from .config import get_config_value
+from .decompiler import ExprDecompiler
+from .types import DerivedDef
+from .types import DerivedDefs
+from .types import PropDef
+from .types import PropFuncParamName
+from .types import PropName
+from .types import RuleBody
+from .types import Rules
+from .types import TypeDefs
+from .types import TypeName
+from .types import VarDefs
+from .types import VarName
 
 BUILT_IN_SCALAR_TYPES = {'float', 'int', 'boolean'}
 
@@ -23,7 +42,13 @@ def gen_code(type_defs: TypeDefs,
              rules: Rules,
              **options):
     text_io = StringIO()
-    code_gen = CodeGen(type_defs, input_defs, output_defs, derived_defs, rules, text_io, options)
+    code_gen = CodeGen(type_defs,
+                       input_defs,
+                       output_defs,
+                       derived_defs,
+                       rules,
+                       text_io,
+                       options)
     code_gen.gen_code()
     return text_io.getvalue()
 
@@ -59,17 +84,28 @@ class CodeGen:
         self._check_var_types(self.output_defs)
 
         options = dict(options or {})
-        self.no_jit = get_config_value(options, CONFIG_NAME_NO_JIT)
-        self.vectorize = get_config_value(options, CONFIG_NAME_VECTORIZE)
-        self.parameterize = get_config_value(options, CONFIG_NAME_PARAMETERIZE)
-        self.function_name = get_config_value(options, CONFIG_NAME_FUNCTION_NAME)
-        self.inputs_name = get_config_value(options, CONFIG_NAME_INPUTS_NAME)
-        self.outputs_name = get_config_value(options, CONFIG_NAME_OUTPUTS_NAME)
-        self.params_name = get_config_value(options, CONFIG_NAME_PARAMS_NAME)
-        self.use_py_types = get_config_value(options, CONFIG_NAME_TYPES)
-        self.not_pattern = _get_config_op_pattern(options, CONFIG_NAME_NOT_PATTERN)
-        self.and_pattern = _get_config_op_pattern(options, CONFIG_NAME_AND_PATTERN)
-        self.or_pattern = _get_config_op_pattern(options, CONFIG_NAME_OR_PATTERN)
+        self.no_jit = get_config_value(options,
+                                       CONFIG_NAME_NO_JIT)
+        self.vectorize = get_config_value(options,
+                                          CONFIG_NAME_VECTORIZE)
+        self.parameterize = get_config_value(options,
+                                             CONFIG_NAME_PARAMETERIZE)
+        self.function_name = get_config_value(options,
+                                              CONFIG_NAME_FUNCTION_NAME)
+        self.inputs_name = get_config_value(options,
+                                            CONFIG_NAME_INPUTS_NAME)
+        self.outputs_name = get_config_value(options,
+                                             CONFIG_NAME_OUTPUTS_NAME)
+        self.params_name = get_config_value(options,
+                                            CONFIG_NAME_PARAMS_NAME)
+        self.use_py_types = get_config_value(options,
+                                             CONFIG_NAME_TYPES)
+        self.not_pattern = _get_config_op_pattern(options,
+                                                  CONFIG_NAME_NOT_PATTERN)
+        self.and_pattern = _get_config_op_pattern(options,
+                                                  CONFIG_NAME_AND_PATTERN)
+        self.or_pattern = _get_config_op_pattern(options,
+                                                 CONFIG_NAME_OR_PATTERN)
 
         self.expr_gen = FuzzyExprGen(type_defs,
                                      self.input_defs,
@@ -92,7 +128,8 @@ class CodeGen:
 
     def _write_imports(self):
         math_import = 'import math'
-        numba_import = 'from numba import jit, jitclass, float64'
+        numba_import = 'from numba import jit, float64'
+        numba_experimental_import = 'from numba.experimental import jitclass'
         numpy_import = 'import numpy as np'
 
         if self.derived_defs:
@@ -103,11 +140,19 @@ class CodeGen:
                 self._write_lines('', numpy_import)
         else:
             if self.vectorize == VECTORIZE_PROP:
-                self._write_lines('', numba_import + ', vectorize', numpy_import)
+                self._write_lines('',
+                                  numba_import + ', vectorize',
+                                  numba_experimental_import,
+                                  numpy_import)
             elif self.vectorize == VECTORIZE_FUNC:
-                self._write_lines('', numba_import, numpy_import)
+                self._write_lines('',
+                                  numba_import,
+                                  numba_experimental_import,
+                                  numpy_import)
             else:
-                self._write_lines('', numba_import)
+                self._write_lines('',
+                                  numba_import,
+                                  numba_experimental_import)
 
     def _write_type_prop_functions(self):
         numba_decorator = self._get_numba_decorator(prop_func=True)
@@ -115,18 +160,23 @@ class CodeGen:
             for prop_name, prop_def in type_def.items():
                 prop_value, func_params, func_body_pattern = prop_def
                 if self.parameterize and func_params:
-                    func_header = 'def _{}_{}(x{}):'.format(type_name, prop_name, ', ' + ', '.join(func_params.keys()))
-                    func_body = func_body_pattern.format(**{key: key for key in func_params.keys()})
+                    args = ', '.join(func_params.keys())
+                    func_header = f'def _{type_name}_{prop_name}(x, {args}):'
+                    func_body = func_body_pattern.format(
+                        **{key: key for key in func_params.keys()})
                 else:
-                    func_header = 'def _{}_{}(x):'.format(type_name, prop_name)
+                    func_header = f'def _{type_name}_{prop_name}(x):'
                     func_body = func_body_pattern.format(**func_params)
 
-                func_body_lines = map(lambda line: '    ' + str(line), func_body.split('\n'))
-                self._write_lines('', '',
-                                  numba_decorator,
-                                  func_header,
-                                  '    # {}.{}: {}'.format(type_name, prop_name, prop_value),
-                                  *func_body_lines)
+                func_body_lines = [f'    {line}'
+                                   for line in func_body.split('\n')]
+                self._write_lines(
+                    '', '',
+                    numba_decorator,
+                    func_header,
+                    f'    # {type_name}.{prop_name}: {prop_value}',
+                    *func_body_lines
+                )
 
     def _write_apply_rules_function(self):
         if self.parameterize:
@@ -138,8 +188,10 @@ class CodeGen:
                                ('outputs', self.outputs_name)]
 
         if self.use_py_types:
-            function_args = ', '.join(['{}: {}'.format(param_name, param_type)
-                                       for param_name, param_type in function_params])
+            function_args = ', '.join([
+                f'{param_name}: {param_type}'
+                for param_name, param_type in function_params
+            ])
         else:
             function_args = ', '.join(['{}'.format(param_name)
                                        for param_name, _ in function_params])
@@ -147,12 +199,16 @@ class CodeGen:
         numba_decorator = self._get_numba_decorator()
         self._write_lines('', '',
                           numba_decorator,
-                          'def {}({}):'.format(self.function_name, function_args))
+                          f'def {self.function_name}({function_args}):')
 
         if self.vectorize == VECTORIZE_FUNC:
             output_var = list(self.output_defs.keys())[0]
-            self._write_lines('    for i in range(len(outputs.{output_var})):'.format(output_var=output_var))
-            self._write_lines('        t0 = 1.0')
+            self._write_lines(
+                f'    for i in range(len(outputs.{output_var})):'
+            )
+            self._write_lines(
+                f'        t0 = 1.0'
+            )
         else:
             self._write_lines('    t0 = 1.0')
 
@@ -189,23 +245,32 @@ class CodeGen:
             for prop_name, prop_def in type_def.items():
                 prop_value, func_params, func_body = prop_def
                 for param_name, param_value in func_params.items():
-                    qualified_param_name = _get_qualified_param_name(type_name, prop_name, param_name)
+                    qualified_param_name = _get_qualified_param_name(
+                        type_name,
+                        prop_name,
+                        param_name
+                    )
                     param_names.append(qualified_param_name)
                     param_values[qualified_param_name] = param_value
         self._write_class(self.params_name, param_names, param_values)
 
-    def _write_class(self, class_name, var_names, param_values: Optional[Dict[str, Any]] = None):
+    def _write_class(self,
+                     class_name,
+                     var_names,
+                     param_values: Optional[Dict[str, Any]] = None):
+
+        tab = '    '
         is_io = param_values is None
 
         spec_name = '_{}Spec'.format(class_name)
         spec_lines = ['{} = ['.format(spec_name)]
         for var_name in var_names:
             if param_values:
-                spec_lines.append('    ("{}", float64),'.format(var_name))
+                spec_lines.append(f'{tab}("{var_name}", float64),')
             elif not self.no_jit and self.vectorize != VECTORIZE_NONE:
-                spec_lines.append('    ("{}", float64[:]),'.format(var_name))
+                spec_lines.append(f'{tab}("{var_name}", float64[:]),')
             else:
-                spec_lines.append('    ("{}", float64),'.format(var_name))
+                spec_lines.append(f'{tab}("{var_name}", float64),')
         spec_lines.append(']')
 
         if self.no_jit:
@@ -213,17 +278,17 @@ class CodeGen:
 
         self._write_lines('', '', *spec_lines)
 
-        numba_line = '@jitclass({})'.format(spec_name)
+        numba_line = f'@jitclass({spec_name})'
         if self.no_jit:
             numba_line = '# ' + numba_line
 
         if is_io and self.vectorize == VECTORIZE_FUNC:
             if self.use_py_types:
-                init_head = '    def __init__(self, size: int):'
+                init_head = f'{tab}def __init__(self, size: int):'
             else:
-                init_head = '    def __init__(self, size):'
+                init_head = f'{tab}def __init__(self, size):'
         else:
-            init_head = '    def __init__(self):'
+            init_head = f'{tab}def __init__(self):'
 
         self._write_lines('', '',
                           numba_line,
@@ -231,28 +296,56 @@ class CodeGen:
                           init_head)
         for var_name in var_names:
             if param_values:
-                self._write_lines('        self.{} = {}'.format(var_name, param_values[var_name]))
+                self._write_lines(
+                    f'{tab}{tab}self.{var_name}'
+                    f' = {param_values[var_name]}'
+                )
             elif is_io and self.vectorize == VECTORIZE_FUNC:
-                self._write_lines('        self.{} = np.zeros(size, dtype=np.float64)'.format(var_name))
+                self._write_lines(
+                    f'{tab}{tab}self.{var_name}'
+                    f' = np.zeros(size, dtype=np.float64)'
+                )
             elif self.vectorize != VECTORIZE_NONE:
-                self._write_lines('        self.{} = np.zeros(1, dtype=np.float64)'.format(var_name))
+                self._write_lines(
+                    f'{tab}{tab}self.{var_name}'
+                    f' = np.zeros(1, dtype=np.float64)'
+                )
             else:
-                self._write_lines('        self.{} = 0.0'.format(var_name))
+                self._write_lines(
+                    f'{tab}{tab}self.{var_name} = 0.0')
 
-    def _write_rule_body(self, rule_body: RuleBody, source_level: int, target_level: int):
+    def _write_rule_body(self,
+                         rule_body: RuleBody,
+                         source_level: int,
+                         target_level: int):
         sub_target_level = target_level
         for rule_stmt in rule_body:
             keyword = rule_stmt[0]
             if keyword == 'if':
                 sub_target_level = target_level
-                self._write_rule_if_stmt_part(keyword, rule_stmt[1], rule_stmt[2], source_level, sub_target_level)
+                self._write_rule_if_stmt_part(keyword,
+                                              rule_stmt[1],
+                                              rule_stmt[2],
+                                              source_level,
+                                              sub_target_level)
             elif keyword == 'elif':
                 sub_target_level += 1
-                self._write_rule_if_stmt_part(keyword, rule_stmt[1], rule_stmt[2], source_level, sub_target_level)
+                self._write_rule_if_stmt_part(keyword,
+                                              rule_stmt[1],
+                                              rule_stmt[2],
+                                              source_level,
+                                              sub_target_level)
             elif keyword == 'else':
-                self._write_rule_if_stmt_part(keyword, None, rule_stmt[1], source_level, sub_target_level)
+                self._write_rule_if_stmt_part(keyword,
+                                              None,
+                                              rule_stmt[1],
+                                              source_level,
+                                              sub_target_level)
             elif keyword == '=':
-                self._write_rule_assignment(rule_stmt[1], rule_stmt[2], source_level, sub_target_level)
+                self._write_rule_assignment(rule_stmt[1],
+                                            rule_stmt[2],
+                                            source_level,
+                                            sub_target_level)
             else:
                 raise NotImplemented
 

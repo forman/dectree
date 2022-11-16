@@ -43,7 +43,7 @@ text_2 = """
 
 class YamlTest(unittest.TestCase):
     def test_rule_conversion(self):
-        rule_code_1 = yaml.load(StringIO(text_1))
+        rule_code_1 = yaml.safe_load(StringIO(text_1))
 
         raw_rule = _load_raw_rule(rule_code_1)
         self.assertEqual(raw_rule,
@@ -68,7 +68,7 @@ class YamlTest(unittest.TestCase):
                                       ('else',
                                        ['out = False'])]))
 
-        rule_code_2 = yaml.load(StringIO(text_2))
+        rule_code_2 = yaml.safe_load(StringIO(text_2))
         self.assertEqual(raw_rule, rule_code_2)
 
         parsed_rule = _parse_raw_rule(raw_rule)

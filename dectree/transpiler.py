@@ -11,20 +11,29 @@ import yaml  # from pyyaml
 
 import dectree.propfuncs as propfuncs
 from .codegen import gen_code
-from .config import CONFIG_NAME_FUNCTION_NAME, CONFIG_NAME_INPUTS_NAME, CONFIG_NAME_OUTPUTS_NAME, \
-    CONFIG_NAME_PARAMS_NAME, CONFIG_NAME_PARAMETERIZE, get_config_value
-from .types import TypeDefs, DerivedDef, DerivedDefs
+from .config import CONFIG_NAME_FUNCTION_NAME
+from .config import CONFIG_NAME_INPUTS_NAME
+from .config import CONFIG_NAME_OUTPUTS_NAME
+from .config import CONFIG_NAME_PARAMETERIZE
+from .config import CONFIG_NAME_PARAMS_NAME
+from .config import get_config_value
+from .types import DerivedDefs
+from .types import TypeDefs
 
 
-def compile(src_file, **options: Dict[str, Any]) -> Tuple[Any, ...]:
+# noinspection PyShadowingBuiltins
+def compile(src_file, **options) -> Tuple[Any, ...]:
     """
-    Generate a decision tree function by compiling *src_file* using the given options.
-    Return a tuple (function, Inputs, Outputs). If option ``parameterize`` is set,
+    Generate a decision tree function by compiling *src_file*
+    using the given options.
+    Return a tuple (function, Inputs, Outputs).
+    If option ``parameterize`` is set,
     return (function, Inputs, Outputs, Params).
 
     Usage:::
 
-        apply_rules, Inputs, Outputs, Params = compile(src_file, parameterize=True)
+        apply_rules, Inputs, Outputs, Params = compile(src_file,
+                                                       parameterize=True)
         inputs = Inputs()
         outputs = Outputs()
         params = Params()
@@ -33,9 +42,11 @@ def compile(src_file, **options: Dict[str, Any]) -> Tuple[Any, ...]:
         apply_rules(inputs, outputs, params)
         # get outputs members here
 
-    :param src_file: A file descriptor or a path-like object to the decision tree definition source file (YAML format)
+    :param src_file: A file descriptor or a path-like object
+        to the decision tree definition source file (YAML format)
     :param options: Compiler/Transpiler options
-    :return: A tuple containing the compiler function and the classes used to generate the functions's arguments.
+    :return: A tuple containing the compiler function and the
+        classes used to generate the functions's arguments.
     """
     text_io = StringIO()
     transpile(src_file, text_io, **options)
@@ -48,7 +59,9 @@ def compile(src_file, **options: Dict[str, Any]) -> Tuple[Any, ...]:
 
     dectree_module = _import_module_from_file(out_path)
 
-    names = [CONFIG_NAME_FUNCTION_NAME, CONFIG_NAME_INPUTS_NAME, CONFIG_NAME_OUTPUTS_NAME]
+    names = [CONFIG_NAME_FUNCTION_NAME,
+             CONFIG_NAME_INPUTS_NAME,
+             CONFIG_NAME_OUTPUTS_NAME]
     if get_config_value(options, CONFIG_NAME_PARAMETERIZE):
         names += [CONFIG_NAME_PARAMS_NAME]
     names = [get_config_value(options, name) for name in names]
@@ -56,15 +69,19 @@ def compile(src_file, **options: Dict[str, Any]) -> Tuple[Any, ...]:
     return tuple(getattr(dectree_module, name) for name in names)
 
 
-def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
+def transpile(src_file, out_file=None, **options) -> str:
     """
-    Generate a decision tree function by transpiling *src_file* to *out_file* using the given *options*.
+    Generate a decision tree function by transpiling *src_file*
+    to *out_file* using the given *options*.
     Return the generated output file, if any, otherwise return None.
 
-    :param src_file: A file descriptor or a path-like object to the decision tree definition source file (YAML format)
-    :param out_file: A file descriptor or a path-like object to the module output file (Python)
+    :param src_file: A file descriptor or a path-like object
+        to the decision tree definition source file (YAML format)
+    :param out_file: A file descriptor or a path-like object
+        to the module output file (Python)
     :param options: Compiler/Transpiler options
-    :return: A path to the written module output file (Python) or None if *out_file* is a file descriptor
+    :return: A path to the written module output file (Python)
+        or None if *out_file* is a file descriptor
     """
 
     try:
@@ -75,7 +92,7 @@ def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
         src_path = None
 
     try:
-        src_code = yaml.load(fd)
+        src_code = yaml.safe_load(fd)
     finally:
         if src_path:
             fd.close()
@@ -85,10 +102,13 @@ def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
 
     _validate_src_code(src_code)
 
-    type_defs = _normalize_types(_to_omap(src_code['types'], recursive=True))
+    type_defs = _normalize_types(_to_omap(src_code['types'],
+                                          recursive=True))
     input_defs = _to_omap(src_code['inputs'])
     output_defs = _to_omap(src_code['outputs'])
-    derived_defs = _parse_raw_var_assignments(_to_omap(src_code.get('derived')) or {})
+    derived_defs = _parse_raw_var_assignments(
+        _to_omap(src_code.get('derived')) or {}
+    )
     rules = _normalize_rules(src_code['rules'])
 
     src_options = dict(src_code.get('options') or {})
@@ -127,12 +147,15 @@ def _validate_src_code(src_code):
     possible_sections = required_sections + ('derived', 'options')
     for section in required_sections:
         if section not in src_code:
-            raise ValueError('Invalid decision tree definition: missing section "{}"'.format(section))
+            raise ValueError(f'Invalid decision tree definition:'
+                             f' missing section "{section}"')
         if not src_code[section]:
-            raise ValueError('Invalid decision tree definition: section "{}" is empty'.format(section))
+            raise ValueError(f'Invalid decision tree definition:'
+                             f' section "{section}" is empty')
     for section in src_code:
         if section not in possible_sections:
-            raise ValueError('Invalid decision tree definition: unknown section "{}"'.format(section))
+            raise ValueError(f'Invalid decision tree definition:'
+                             f' unknown section "{section}"')
 
 
 def _normalize_types(types: Dict[str, Dict[str, str]]) -> TypeDefs:
@@ -144,25 +167,27 @@ def _normalize_types(types: Dict[str, Dict[str, str]]) -> TypeDefs:
             try:
                 prop_result = eval(prop_value, vars(propfuncs), {})
             except Exception:
-                raise ValueError('Illegal value for property "{}" of type "{}": {}'.format(prop_name,
-                                                                                           type_name,
-                                                                                           prop_value))
+                raise ValueError(f'Illegal value for property "{prop_name}"'
+                                 f' of type "{type_name}": {prop_value}')
             func_params, func_body = prop_result
             type_def[prop_name] = prop_value, func_params, func_body
     return type_defs
 
 
-def _parse_raw_var_assignments(raw_var_assignments: Dict[str, str]) -> DerivedDefs:
+def _parse_raw_var_assignments(raw_var_assignments: Dict[str, str]) \
+        -> DerivedDefs:
     var_assignments = []
     for raw_var_assignment, var_type in raw_var_assignments.items():
         if not var_type:
-            raise ValueError('illegal variable assignment: "{}: {}"'.format(raw_var_assignment, var_type))
+            raise ValueError(f'illegal variable assignment:'
+                             f' "{raw_var_assignment}: {var_type}"')
         assignment_tokens = raw_var_assignment.split(None, 2)
         if len(assignment_tokens) != 3 \
                 or not assignment_tokens[0] \
                 or assignment_tokens[1] != '=' \
                 or not assignment_tokens[2]:
-            raise ValueError('illegal variable assignment: "{}"'.format(raw_var_assignment))
+            raise ValueError(f'illegal variable assignment:'
+                             f' "{raw_var_assignment}"')
         var_name, _, expr = assignment_tokens
         var_assignments.append((var_name, var_type, expr))
     return var_assignments
@@ -178,7 +203,8 @@ def _normalize_rule(raw_rule: Union[str, List]):
     return _parse_raw_rule(raw_rule)
 
 
-def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) -> List[Union[Tuple, List]]:
+def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) \
+        -> List[Union[Tuple, List]]:
     # print(raw_rule)
     n = len(raw_rule)
     parsed_rule = []
@@ -194,38 +220,43 @@ def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) -> List[Union[Tuple, List
         if stmt_part:
             stmt_tokens = stmt_part.split(None, 1)
             if len(stmt_tokens) == 0:
-                raise ValueError('illegal rule part: {}'.format(stmt_part))
+                raise ValueError(f'illegal rule part: {stmt_part}')
 
             keyword = stmt_tokens[0]
 
             if keyword == 'if':
                 if i != 0:
-                    raise ValueError('"if" must be first in rule: {}'.format(stmt_part))
+                    raise ValueError(f'"if" must be first in rule:'
+                                     f' {stmt_part}')
                 if len(stmt_tokens) != 2 or not stmt_tokens[1]:
-                    raise ValueError('illegal rule part: {}'.format(stmt_part))
+                    raise ValueError(f'illegal rule part: {stmt_part}')
                 condition = stmt_tokens[1]
             elif keyword == 'else':
                 if len(stmt_tokens) == 1:
                     if i < n - 2:
-                        raise ValueError('"else" must be last in rule: {}'.format(stmt_part))
+                        raise ValueError(f'"else" must be last in rule:'
+                                         f' {stmt_part}')
                     condition = None
                 else:
                     elif_stmt_tokens = stmt_tokens[1].split(None, 1)
                     if elif_stmt_tokens[0] == 'if':
                         keyword, condition = 'elif', elif_stmt_tokens[1]
                     else:
-                        raise ValueError('illegal rule part: {}'.format(stmt_part))
+                        raise ValueError(f'illegal rule part: {stmt_part}')
             elif keyword == 'elif':
                 if len(stmt_tokens) != 2 or not stmt_tokens[1]:
-                    raise ValueError('illegal rule part: {}'.format(stmt_part))
+                    raise ValueError(f'illegal rule part: {stmt_part}')
                 condition = stmt_tokens[1]
             else:
-                raise ValueError('illegal rule part: {}'.format(stmt_part))
+                raise ValueError(f'illegal rule part: {stmt_part}')
 
             if condition:
-                parsed_rule.append((keyword, condition, _parse_raw_rule(stmt_body)))
+                parsed_rule.append((keyword,
+                                    condition,
+                                    _parse_raw_rule(stmt_body)))
             else:
-                parsed_rule.append((keyword, _parse_raw_rule(stmt_body)))
+                parsed_rule.append((keyword,
+                                    _parse_raw_rule(stmt_body)))
 
         elif assignment:
             # noinspection PyUnresolvedReferences
@@ -234,12 +265,12 @@ def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) -> List[Union[Tuple, List
                     or not assignment_parts[0].isidentifier() \
                     or assignment_parts[1] != '=' \
                     or not assignment_parts[2]:
-                raise ValueError('illegal rule part: {}'.format(stmt_part))
+                raise ValueError(f'illegal rule part: {stmt_part}')
 
             parsed_rule.append(('=', assignment_parts[0], assignment_parts[2]))
 
         else:
-            raise ValueError('illegal rule part: {}'.format(stmt_part))
+            raise ValueError(f'illegal rule part: {stmt_part}')
 
     return parsed_rule
 
@@ -256,7 +287,7 @@ def _load_raw_rule(rule_code: str):
                 yml_lines.append(indent + '- ' + content)
             else:
                 yml_lines.append(indent + content)
-    return yaml.load('\n'.join(yml_lines))
+    return yaml.safe_load('\n'.join(yml_lines))
 
 
 def _count_leading_spaces(s: str):
