@@ -183,7 +183,7 @@ class ExprDecompiler:
                 x = '{x0}'
                 left_op = getattr(left, 'op', None)
                 if left_op:
-                    name, other_precedence, assoc = \
+                    _, other_precedence, assoc = \
                         ExprDecompiler.get_op_info(left_op)
                     if other_precedence < precedence:
                         x = '(%s)' % x
