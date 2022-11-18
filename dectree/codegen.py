@@ -3,7 +3,6 @@ from collections import OrderedDict
 from io import StringIO
 from typing import Dict, Any, Tuple, Optional, Union
 
-import dectree.propfuncs as propfuncs
 from .config import CONFIG_NAME_AND_PATTERN
 from .config import CONFIG_NAME_FUNCTION_NAME
 from .config import CONFIG_NAME_INPUTS_NAME
@@ -178,6 +177,19 @@ class CodeGen:
                     *func_body_lines
                 )
 
+    def _write_names_accessor(self, target: str, var_names):
+        tab = '     '
+        self._write_lines(
+            '', '',
+            f'def get_{target}_names():',
+            '    return ('
+        )
+        for var_name in var_names:
+            self._write_lines(f'{tab}{tab}{var_name!r},')
+        self._write_lines(
+            '    )'
+        )
+
     def _write_apply_rules_function(self):
         if self.parameterize:
             function_params = [('inputs', self.inputs_name),
@@ -229,9 +241,11 @@ class CodeGen:
 
     def _write_inputs_class(self):
         self._write_io_class(self.inputs_name, self.input_defs)
+        self._write_names_accessor('input', self.input_defs.keys())
 
     def _write_outputs_class(self):
         self._write_io_class(self.outputs_name, self.output_defs)
+        self._write_names_accessor('output', self.output_defs.keys())
 
     def _write_io_class(self, class_name, var_defs):
         self._write_class(class_name, var_defs.keys())
@@ -292,7 +306,7 @@ class CodeGen:
 
         self._write_lines('', '',
                           numba_line,
-                          'class {}:'.format(class_name),
+                          f'class {class_name}:',
                           init_head)
         for var_name in var_names:
             if param_values:
@@ -313,6 +327,7 @@ class CodeGen:
             else:
                 self._write_lines(
                     f'{tab}{tab}self.{var_name} = 0.0')
+
 
     def _write_rule_body(self,
                          rule_body: RuleBody,
@@ -579,23 +594,6 @@ class FuzzyExprGen:
             return t1
 
         raise ValueError('Unsupported expression')
-
-
-def _types_to_type_defs(types: Dict[str, Dict[str, str]]) -> TypeDefs:
-    type_defs = OrderedDict()
-    for type_name, type_properties in types.items():
-        type_def = {}
-        type_defs[type_name] = type_def
-        for prop_name, prop_value in type_properties.items():
-            try:
-                prop_result = eval(prop_value, vars(propfuncs), {})
-            except Exception:
-                raise ValueError('Illegal value for property "{}" of type "{}": {}'.format(prop_name,
-                                                                                           type_name,
-                                                                                           prop_value))
-            func_params, func_body = prop_result
-            type_def[prop_name] = prop_value, func_params, func_body
-    return type_defs
 
 
 def _get_type_name_and_prop_def(var_name: VarName,
