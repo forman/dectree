@@ -22,8 +22,8 @@ def const(t: float) -> PropFuncResult:
 
 def eq(x0: float, dx: float = 0.0) -> PropFuncResult:
     return dict(x0=float(x0), dx=float(dx)), (
-        "if {dx} == 0.0:\n"
-        "    return 1.0 if x == {x0} else 0.0\n"
+        "return 1.0 if x == {x0} else 0.0"
+        if dx == 0.0 else
         "x1 = {x0} - {dx}\n"
         "x2 = {x0}\n"
         "x3 = {x0} + {dx}\n"
@@ -39,8 +39,8 @@ def eq(x0: float, dx: float = 0.0) -> PropFuncResult:
 
 def ne(x0: float, dx: float = 0.0) -> PropFuncResult:
     return dict(x0=float(x0), dx=float(dx)), (
-        "if {dx} == 0.0:\n"
-        "    return 1.0 if x != {x0} else 0.0\n"
+        "return 1.0 if x != {x0} else 0.0"
+        if dx == 0.0 else
         "x1 = {x0} - {dx}\n"
         "x2 = {x0}\n"
         "x3 = {x0} + {dx}\n"
@@ -156,27 +156,27 @@ def inv_trapezoid(x1: float = 0.0,
 
 def _greater_op(op: str, x0: float, dx: float) -> PropFuncResult:
     return dict(x0=float(x0), dx=float(dx)), (
-        "if {dx} == 0.0:\n"
-        "    return 1.0 if x %s {x0} else 0.0\n"
-        "x1 = {x0} - {dx}\n"
-        "x2 = {x0} + {dx}\n"
-        "if x <= x1:\n"
-        "    return 0.0\n"
-        "if x <= x2:\n"
-        "    return (x - x1) / (x2 - x1)\n"
-        "return 1.0" % op
+        ("return 1.0 if x %s {x0} else 0.0" % op)
+        if dx == 0.0 else
+        ("x1 = {x0} - {dx}\n"
+         "x2 = {x0} + {dx}\n"
+         "if x <= x1:\n"
+         "    return 0.0\n"
+         "if x <= x2:\n"
+         "    return (x - x1) / (x2 - x1)\n"
+         "return 1.0")
     )
 
 
 def _less_op(op: str, x0: float, dx: float) -> PropFuncResult:
     return dict(x0=float(x0), dx=float(dx)), (
-        "if {dx} == 0.0:\n"
-        "    return 1.0 if x %s {x0} else 0.0\n"
-        "x1 = {x0} - {dx}\n"
-        "x2 = {x0} + {dx}\n"
-        "if x <= x1:\n"
-        "    return 1.0\n"
-        "if x <= x2:\n"
-        "    return 1.0 - (x - x1) / (x2 - x1)\n"
-        "return 0.0" % op
+        ("return 1.0 if x %s {x0} else 0.0" % op)
+        if dx == 0.0 else
+        ("x1 = {x0} - {dx}\n"
+         "x2 = {x0} + {dx}\n"
+         "if x <= x1:\n"
+         "    return 1.0\n"
+         "if x <= x2:\n"
+         "    return 1.0 - (x - x1) / (x2 - x1)\n"
+         "return 0.0")
     )
