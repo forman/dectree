@@ -1,8 +1,10 @@
 import ast
 import sys
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Callable
 
 from decompiler import ExprDecompiler
+
+BOOL_NAME = "FuzzyBool"
 
 
 class Node(dict):
@@ -40,9 +42,10 @@ def parse_envi_dectree(envi_file: str) -> Tuple[List[Node], List[Node]]:
                 raise ValueError(f"syntax error: {line}")
             key, value = [token.strip()
                           for token in line.split("=", maxsplit=2)]
+            # noinspection PyBroadException
             try:
                 value = eval(value)
-            except NameError:
+            except Exception:
                 pass
             current_node[key] = value
 
@@ -64,7 +67,9 @@ def parse_envi_dectree(envi_file: str) -> Tuple[List[Node], List[Node]]:
     return variables, nodes
 
 
-def write_yaml_dectree(variables: List[Node], nodes: List[Node]):
+def write_yaml_dectree(variables: List[Node],
+                       nodes: List[Node],
+                       write_line: Callable[[str], None] = print):
     rule_builder = RuleBuilder()
     rules = []
     for node in nodes:
@@ -73,53 +78,85 @@ def write_yaml_dectree(variables: List[Node], nodes: List[Node]):
             text = "\n".join(lines)
             rules.append(text)
 
-    print("types:")
-    for type_name in rule_builder.type_names.values():
-        print(f'  {type_name}:')
-        type_def = rule_builder.type_defs[type_name]
+    write_line("types:")
+    for type_id, type_def in rule_builder.type_id_to_type_defs.items():
+        write_line(f'  {type_id}:')
         for prop_name, prop_value in type_def.items():
-            print(f'    {prop_name}: {prop_value}')
+            write_line(f'    {prop_name}: {prop_value}')
 
-    print("")
-    print("inputs:")
+    write_line("")
+    write_line("inputs:")
     for variable in variables:
-        var_id = variable["variable name"]
-        type_name = rule_builder.type_names.get(var_id, "float")
-        print(f'  - {var_id}: {type_name}')
+        var_id = _name_to_id(variable["variable name"])
+        type_name = rule_builder.var_id_to_type_ids.get(var_id, "float")
+        write_line(f'  - {var_id}: {type_name}')
 
-    print("")
-    print("outputs:")
+    write_line("")
+    write_line("outputs:")
     for node in nodes:
         if node["type"] == "Result":
-            print(f'  - {node["name"]}: Bool')
+            var_id = _name_to_id(node["name"])
+            write_line(f'  - {var_id}: {BOOL_NAME}')
 
     if rule_builder.derived_vars:
-        print("")
-        print("derived:")
+        write_line("")
+        write_line("derived:")
         for var_expr, var_id in rule_builder.derived_vars.items():
-            type_name = rule_builder.type_names.get(var_id, "float")
-            print(f'  - {var_id} = {var_expr}: {type_name}')
+            type_name = rule_builder.var_id_to_type_ids.get(var_id, "float")
+            write_line(f'  - {var_id} = {var_expr}: {type_name}')
 
-    print("")
-    print("rules:")
+    write_line("")
+    write_line("rules:")
     for rule in rules:
-        print("  - |")
-        print(rule)
+        write_line("  - |")
+        write_line(rule)
+
+
+def _name_to_id(name: str):
+    if name.isidentifier():
+        return name
+    c = name[0]
+    if c.isidentifier():
+        id_ = ''
+    else:
+        id_ = 'var_'
+    for c in name:
+        if c.isalnum() or c == '_':
+            pass
+        elif c.isspace() or c == '-':
+            c = '_'
+        elif c == '<':
+            c = 'lt'
+        elif c == '>':
+            c = 'gt'
+        elif c == '=':
+            c = 'eq'
+        elif c == '!':
+            c = 'not'
+        else:
+            c = '_'
+        id_ += c
+    return id_
 
 
 class RuleBuilder(ExprDecompiler):
     op_names = {
         ast.Eq: "eq",
         ast.NotEq: "ne",
-        ast.Gt:"gt",
+        ast.Gt: "gt",
         ast.GtE: "ge",
         ast.Lt: "lt",
         ast.LtE: "le",
     }
 
     def __init__(self):
-        self.type_defs = {}
-        self.type_names = {}
+        self.type_id_to_type_defs = {
+            BOOL_NAME: {
+                '"FALSE"': "false()",
+                '"TRUE"': "true()",
+            }
+        }
+        self.var_id_to_type_ids = {}
         self.derived_vars = {}
 
     def transform_compare(self, left, ops, comparators):
@@ -156,12 +193,12 @@ class RuleBuilder(ExprDecompiler):
                 prop_func_id = self.op_names[op_type]
                 type_id = var_id.upper()
                 prop_id = f"{prop_func_id.upper()}_{value_id}"
-                if type_id in self.type_defs:
-                    type_def = self.type_defs[type_id]
+                if type_id in self.type_id_to_type_defs:
+                    type_def = self.type_id_to_type_defs[type_id]
                 else:
                     type_def = {}
-                    self.type_defs[type_id] = type_def
-                self.type_names[var_id] = type_id
+                    self.type_id_to_type_defs[type_id] = type_def
+                self.var_id_to_type_ids[var_id] = type_id
                 type_def[prop_id] = f"{prop_func_id}({value})"
                 return f"{var_id} is {prop_id}"
 
@@ -170,7 +207,7 @@ class RuleBuilder(ExprDecompiler):
     def new_derived_var(self, var_expr):
         var_id = self.derived_vars.get(var_expr)
         if var_id is None:
-            var_id = f"temp_{len(self.derived_vars)}"
+            var_id = f"derived_{len(self.derived_vars)}"
             self.derived_vars[var_expr] = var_id
         return var_id
 
@@ -205,16 +242,29 @@ class RuleBuilder(ExprDecompiler):
                 for no_node in node.no_children:
                     self._build_rule(no_node, level + 1, lines)
         else:
-            name = node.get("name")
-            lines.append(f"{indent}{name} = TRUE")
+            var_id = _name_to_id(node.get("name"))
+            lines.append(f"{indent}{var_id} = TRUE")
 
 
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
     envi_file = args[0]
+    out_file = args[1] if len(args) > 1 else None
     variables, nodes = parse_envi_dectree(envi_file)
-    write_yaml_dectree(variables, nodes)
+
+    if out_file is not None:
+        out = open(out_file, "w")
+
+        def write_line(line: str):
+            out.write(line + "\n")
+    else:
+        out = None
+        write_line = print
+
+    write_yaml_dectree(variables, nodes, write_line=write_line)
+    if out is not None:
+        out.close()
 
 
 if __name__ == "__main__":
