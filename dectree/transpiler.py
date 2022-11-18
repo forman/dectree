@@ -49,7 +49,7 @@ def compile(src_file, **options) -> Tuple[Any, ...]:
         classes used to generate the functions's arguments.
     """
     text_io = StringIO()
-    transpile(src_file, text_io, **options)
+    transpile(src_file, out_file=text_io, **options)
 
     py_code = text_io.getvalue()
 
@@ -267,7 +267,9 @@ def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) \
                     or not assignment_parts[2]:
                 raise ValueError(f'illegal rule part: {stmt_part}')
 
-            parsed_rule.append(('=', assignment_parts[0], assignment_parts[2]))
+            parsed_rule.append(('=',
+                                assignment_parts[0],
+                                assignment_parts[2]))
 
         else:
             raise ValueError(f'illegal rule part: {stmt_part}')
