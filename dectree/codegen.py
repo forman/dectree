@@ -109,6 +109,7 @@ class CodeGen:
         self.expr_gen = FuzzyExprGen(type_defs,
                                      self.input_defs,
                                      self.output_defs,
+                                     self.derived_defs,
                                      parameterize=self.parameterize,
                                      vectorize=self.vectorize,
                                      no_jit=self.no_jit,
@@ -328,7 +329,6 @@ class CodeGen:
                 self._write_lines(
                     f'{tab}{tab}self.{var_name} = 0.0')
 
-
     def _write_rule_body(self,
                          rule_body: RuleBody,
                          source_level: int,
@@ -486,12 +486,13 @@ class FuzzyExprGen:
                  type_defs: TypeDefs,
                  input_defs: VarDefs,
                  output_defs: VarDefs,
-                 parameterize=False,
-                 vectorize=VECTORIZE_NONE,
-                 no_jit=False,
-                 not_pattern='1.0 - ({x})',
-                 and_pattern='min({x}, {y})',
-                 or_pattern='max({x}, {y})'):
+                 derived_defs: Optional[DerivedDefs] = None,
+                 parameterize: bool = False,
+                 vectorize: str = VECTORIZE_NONE,
+                 no_jit: bool = False,
+                 not_pattern: str = '1.0 - ({x})',
+                 and_pattern: str = 'min({x}, {y})',
+                 or_pattern: str = 'max({x}, {y})'):
 
         assert type_defs is not None
         assert input_defs is not None
@@ -504,7 +505,11 @@ class FuzzyExprGen:
         self.type_defs = type_defs
         self.input_defs = input_defs
         self.output_defs = output_defs
-        self.var_defs = dict(**input_defs, **output_defs)
+        self.derived_defs = derived_defs or []
+        self.var_defs = dict(input_defs)
+        self.var_defs.update(output_defs)
+        self.var_defs.update({item[0]: item[1]
+                              for item in self.derived_defs})
 
         self.parameterize = parameterize
         self.vectorize = vectorize

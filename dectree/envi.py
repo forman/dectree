@@ -1,7 +1,9 @@
 import ast
-import sys
-from typing import List, Optional, Tuple, Callable
+import os.path
+from typing import List, Optional, Tuple, Callable, Dict, Any
 
+import click
+import yaml
 from decompiler import ExprDecompiler
 
 BOOL_NAME = "FuzzyBool"
@@ -17,8 +19,8 @@ class Node(dict):
         self.no_children: List[Node] = []
 
 
-def parse_envi_dectree(envi_file: str) -> Tuple[List[Node], List[Node]]:
-    with open(envi_file) as fp:
+def parse_envi_dectree(envi_path: str) -> Tuple[List[Node], List[Node]]:
+    with open(envi_path) as fp:
         lines = fp.readlines()
     nodes = []
     variables = []
@@ -42,11 +44,14 @@ def parse_envi_dectree(envi_file: str) -> Tuple[List[Node], List[Node]]:
                 raise ValueError(f"syntax error: {line}")
             key, value = [token.strip()
                           for token in line.split("=", maxsplit=2)]
-            # noinspection PyBroadException
-            try:
-                value = eval(value)
-            except Exception:
-                pass
+            if value.startswith('"') and value.endswith('"'):
+                value = value[1:-1]
+            else:
+                # noinspection PyBroadException
+                try:
+                    value = eval(value)
+                except Exception:
+                    pass
             current_node[key] = value
 
     decisions = {node["name"]: node for node in nodes
@@ -69,8 +74,9 @@ def parse_envi_dectree(envi_file: str) -> Tuple[List[Node], List[Node]]:
 
 def write_yaml_dectree(variables: List[Node],
                        nodes: List[Node],
+                       config: Dict[str, Any],
                        write_line: Callable[[str], None] = print):
-    rule_builder = RuleBuilder()
+    rule_builder = RuleBuilder(config)
     rules = []
     for node in nodes:
         if node.parent is None:
@@ -87,23 +93,45 @@ def write_yaml_dectree(variables: List[Node],
     write_line("")
     write_line("inputs:")
     for variable in variables:
-        var_id = _name_to_id(variable["variable name"])
+        orig_var_id = variable["variable name"]
+        var_id = config["variables"].get(orig_var_id)
+        if var_id is None:
+            print(f"warning: skipping variable {orig_var_id!r}")
+            continue
+        elif var_id not in rule_builder.used_vars:
+            print(f"warning: unused variable {orig_var_id!r}"
+                  f" (renamed to {var_id!r})")
+            continue
+        elif var_id in config["derived"]:
+            continue
         type_name = rule_builder.var_id_to_type_ids.get(var_id, "float")
+        file_name = variable.get("file name")
+        if file_name is not None:
+            # file_name = file_name.replace("\\", "\\\\")
+            write_line(f'  # file name = "{file_name}"')
+        file_pos = variable.get("file pos")
+        if file_pos is not None:
+            write_line(f'  # file pos = {file_pos}')
         write_line(f'  - {var_id}: {type_name}')
+
+    if rule_builder.derived_vars or config["derived"]:
+        write_line("")
+        write_line("derived:")
+        for var_id, var_expr in config["derived"].items():
+            type_name = rule_builder.var_id_to_type_ids.get(var_id, "float")
+            write_line(f'  - {var_id} = {var_expr}: {type_name}')
+        for var_expr, var_id in rule_builder.derived_vars.items():
+            type_name = rule_builder.var_id_to_type_ids.get(var_id, "float")
+            write_line(f'  - {var_id} = {var_expr}: {type_name}')
 
     write_line("")
     write_line("outputs:")
+    for var_id, expression in config["derived"].items():
+        write_line(f'  - {var_id}: float')
     for node in nodes:
         if node["type"] == "Result":
             var_id = _name_to_id(node["name"])
             write_line(f'  - {var_id}: {BOOL_NAME}')
-
-    if rule_builder.derived_vars:
-        write_line("")
-        write_line("derived:")
-        for var_expr, var_id in rule_builder.derived_vars.items():
-            type_name = rule_builder.var_id_to_type_ids.get(var_id, "float")
-            write_line(f'  - {var_id} = {var_expr}: {type_name}')
 
     write_line("")
     write_line("rules:")
@@ -149,7 +177,8 @@ class RuleBuilder(ExprDecompiler):
         ast.LtE: "le",
     }
 
-    def __init__(self):
+    def __init__(self, config: Dict[str, Any]):
+        self.config = config
         self.type_id_to_type_defs = {
             BOOL_NAME: {
                 '"FALSE"': "false()",
@@ -158,6 +187,15 @@ class RuleBuilder(ExprDecompiler):
         }
         self.var_id_to_type_ids = {}
         self.derived_vars = {}
+        self.used_vars = set()
+
+    def transform_name(self, name: ast.Name):
+        new_name = self.config["variables"].get(name.id)
+        if new_name is None:
+            print(f"warning: variable {name.id!r} will be used as-is")
+            new_name = name.id
+        self.used_vars.add(new_name)
+        return new_name
 
     def transform_compare(self, left, ops, comparators):
         if len(ops) == 1:
@@ -165,7 +203,7 @@ class RuleBuilder(ExprDecompiler):
             right = comparators[0]
             if isinstance(left, ast.Name):
                 # Left is a variable name
-                var_expr = left.id
+                var_expr = self.transform_name(left)
                 var_id = var_expr
             else:
                 # Left is another expression: create a derived variable
@@ -209,6 +247,7 @@ class RuleBuilder(ExprDecompiler):
         if var_id is None:
             var_id = f"derived_{len(self.derived_vars)}"
             self.derived_vars[var_expr] = var_id
+        self.used_vars.add(var_id)
         return var_id
 
     def build_rule(self, node: Node,  level: int = 0) -> List[str]:
@@ -246,25 +285,54 @@ class RuleBuilder(ExprDecompiler):
             lines.append(f"{indent}{var_id} = TRUE")
 
 
-def main(args=None):
-    if args is None:
-        args = sys.argv[1:]
-    envi_file = args[0]
-    out_file = args[1] if len(args) > 1 else None
-    variables, nodes = parse_envi_dectree(envi_file)
+@click.command()
+@click.option('--out', '-o', 'out_path',
+              help='Path to output file')
+@click.option('--config', '-c', 'config_path',
+              help='Path to configuration file')
+@click.argument('envi_path')
+def main(out_path: str = None,
+         config_path: str = None,
+         envi_path: str = None):
+    config = {}
+    if config_path is not None:
+        with open(config_path) as file:
+            config = yaml.safe_load(file)
 
-    if out_file is not None:
-        out = open(out_file, "w")
+    if out_path is None:
+        out_dir = os.path.dirname(envi_path)
+        out_name, _ = os.path.splitext(os.path.basename(envi_path))
+        out_path = os.path.join(out_dir or ".", out_name + ".yaml")
 
+    variables, nodes = parse_envi_dectree(envi_path)
+
+    if "derived" not in config:
+        config["derived"] = {}
+    if not config.get("variables"):
+        mapping = {}
+        for variable in variables:
+            var_name = variable.get('variable name')
+            file_name = variable.get('file name')
+            if file_name:
+                new_name = os.path.splitext(os.path.basename(file_name))[0]
+            else:
+                new_name = var_name
+            mapping[var_name] = new_name
+            config["variables"] = mapping
+        print("info: using following configuration:\n")
+        print(yaml.dump(config))
+        print()
+
+    config["derived"] = {tuple(d.keys())[0]: tuple(d.values())[0]
+                         for d in config["derived"]}
+
+    with open(out_path, "w") as file:
         def write_line(line: str):
-            out.write(line + "\n")
-    else:
-        out = None
-        write_line = print
+            file.write(line + "\n")
 
-    write_yaml_dectree(variables, nodes, write_line=write_line)
-    if out is not None:
-        out.close()
+        write_yaml_dectree(variables, nodes, config, write_line=write_line)
+
+    print(f"generated {out_path}")
 
 
 if __name__ == "__main__":
