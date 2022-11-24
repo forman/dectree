@@ -17,8 +17,8 @@ VarName = str
 VarDefs = Dict[VarName, TypeName]
 
 Expression = str
-DerivedDef = Tuple[VarName, TypeName, Expression]
-DerivedDefs = List[DerivedDef]
+DerivedDef = Tuple[TypeName, Expression]
+DerivedDefs = Dict[VarName, DerivedDef]
 
 RuleCondition = str
 RuleIfKw = str

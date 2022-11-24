@@ -4,9 +4,11 @@ from typing import List, Optional, Tuple, Callable, Dict, Any
 
 import click
 import yaml
+
 from decompiler import ExprDecompiler
 
 BOOL_NAME = "FuzzyBool"
+INTERMEDIATE_PREFIX = "_interm_"
 
 
 class Node(dict):
@@ -94,7 +96,7 @@ def write_yaml_dectree(variables: List[Node],
     write_line("inputs:")
     for variable in variables:
         orig_var_id = variable["variable name"]
-        var_id = config["variables"].get(orig_var_id)
+        var_id = config["envi_mapping"].get(orig_var_id)
         if var_id is None:
             print(f"warning: skipping variable {orig_var_id!r}")
             continue
@@ -102,31 +104,26 @@ def write_yaml_dectree(variables: List[Node],
             print(f"warning: unused variable {orig_var_id!r}"
                   f" (renamed to {var_id!r})")
             continue
-        elif var_id in config["derived"]:
+        elif var_id in config["extra_derived"]:
             continue
-        type_name = rule_builder.var_id_to_type_ids.get(var_id, "float")
-        file_name = variable.get("file name")
-        if file_name is not None:
-            # file_name = file_name.replace("\\", "\\\\")
-            write_line(f'  # file name = "{file_name}"')
-        file_pos = variable.get("file pos")
-        if file_pos is not None:
-            write_line(f'  # file pos = {file_pos}')
-        write_line(f'  - {var_id}: {type_name}')
+        var_type_id = rule_builder.var_id_to_type_ids.get(var_id, "float")
+        write_line(f'  - {var_id}: {var_type_id}')
+    for var_id, var_type_id in config["extra_inputs"].items():
+        write_line(f'  - {var_id}: {var_type_id}')
 
-    if rule_builder.derived_vars or config["derived"]:
+    if rule_builder.derived_vars or config["extra_derived"]:
         write_line("")
         write_line("derived:")
-        for var_id, var_expr in config["derived"].items():
-            type_name = rule_builder.var_id_to_type_ids.get(var_id, "float")
-            write_line(f'  - {var_id} = {var_expr}: {type_name}')
+        for var_id, var_expr in config["extra_derived"].items():
+            var_type_id = rule_builder.var_id_to_type_ids.get(var_id, "float")
+            write_line(f'  - {var_id} = {var_expr}: {var_type_id}')
         for var_expr, var_id in rule_builder.derived_vars.items():
-            type_name = rule_builder.var_id_to_type_ids.get(var_id, "float")
-            write_line(f'  - {var_id} = {var_expr}: {type_name}')
+            var_type_id = rule_builder.var_id_to_type_ids.get(var_id, "float")
+            write_line(f'  - {var_id} = {var_expr}: {var_type_id}')
 
     write_line("")
     write_line("outputs:")
-    for var_id, expression in config["derived"].items():
+    for var_id, expression in config["extra_derived"].items():
         write_line(f'  - {var_id}: float')
     for node in nodes:
         if node["type"] == "Result":
@@ -190,7 +187,7 @@ class RuleBuilder(ExprDecompiler):
         self.used_vars = set()
 
     def transform_name(self, name: ast.Name):
-        new_name = self.config["variables"].get(name.id)
+        new_name = self.config["envi_mapping"].get(name.id)
         if new_name is None:
             print(f"warning: variable {name.id!r} will be used as-is")
             new_name = name.id
@@ -209,7 +206,7 @@ class RuleBuilder(ExprDecompiler):
                 # Left is another expression: create a derived variable
                 # from expression and use its new name instead
                 var_expr = self.decompile(left)
-                var_id = self.new_derived_var(var_expr)
+                var_id = self.new_intermediate_var(var_expr)
 
             if isinstance(right, ast.Constant):
                 # Right is constant
@@ -224,7 +221,7 @@ class RuleBuilder(ExprDecompiler):
                 right_expr = self.decompile(right)
                 # Note: we could avoid parentheses
                 var_expr = f"{var_expr} - ({right_expr})"
-                var_id = self.new_derived_var(var_expr)
+                var_id = self.new_intermediate_var(var_expr)
 
             op_type = type(op)
             if op_type in self.op_names:
@@ -242,10 +239,10 @@ class RuleBuilder(ExprDecompiler):
 
         return super().transform_compare(left, ops, comparators)
 
-    def new_derived_var(self, var_expr):
+    def new_intermediate_var(self, var_expr):
         var_id = self.derived_vars.get(var_expr)
         if var_id is None:
-            var_id = f"derived_{len(self.derived_vars)}"
+            var_id = f"{INTERMEDIATE_PREFIX}{len(self.derived_vars) + 1}"
             self.derived_vars[var_expr] = var_id
         self.used_vars.add(var_id)
         return var_id
@@ -306,10 +303,30 @@ def main(out_path: str = None,
 
     variables, nodes = parse_envi_dectree(envi_path)
 
-    if "derived" not in config:
-        config["derived"] = {}
-    if not config.get("variables"):
-        mapping = {}
+    norm_config = normalize_config(config, variables)
+    if not config.get("envi_mapping") and norm_config.get("envi_mapping"):
+        print("info: using generated configuration:\n")
+        print(yaml.dump(config))
+
+    with open(out_path, "w") as file:
+        def write_line(line: str):
+            file.write(line + "\n")
+
+        write_yaml_dectree(variables, nodes,
+                           norm_config,
+                           write_line=write_line)
+
+    print(f"generated {out_path}")
+
+
+def normalize_config(config, variables):
+    config = dict(config)
+    if "extra_inputs" not in config:
+        config["extra_inputs"] = []
+    if "extra_derived" not in config:
+        config["extra_derived"] = []
+    if not config.get("envi_mapping"):
+        envi_mapping = {}
         for variable in variables:
             var_name = variable.get('variable name')
             file_name = variable.get('file name')
@@ -317,22 +334,19 @@ def main(out_path: str = None,
                 new_name = os.path.splitext(os.path.basename(file_name))[0]
             else:
                 new_name = var_name
-            mapping[var_name] = new_name
-            config["variables"] = mapping
-        print("info: using following configuration:\n")
-        print(yaml.dump(config))
-        print()
+            envi_mapping[var_name] = new_name
+            config["envi_mapping"] = envi_mapping
 
-    config["derived"] = {tuple(d.keys())[0]: tuple(d.values())[0]
-                         for d in config["derived"]}
+    def to_ordered_dict(dict_list):
+        if isinstance(dict_list, dict):
+            return dict_list
+        return {tuple(d.keys())[0]: tuple(d.values())[0]
+                for d in dict_list}
 
-    with open(out_path, "w") as file:
-        def write_line(line: str):
-            file.write(line + "\n")
+    config["extra_inputs"] = to_ordered_dict(config["extra_inputs"])
+    config["extra_derived"] = to_ordered_dict(config["extra_derived"])
 
-        write_yaml_dectree(variables, nodes, config, write_line=write_line)
-
-    print(f"generated {out_path}")
+    return config
 
 
 if __name__ == "__main__":

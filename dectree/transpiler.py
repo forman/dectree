@@ -17,6 +17,7 @@ from .config import CONFIG_NAME_OUTPUTS_NAME
 from .config import CONFIG_NAME_PARAMETERIZE
 from .config import CONFIG_NAME_PARAMS_NAME
 from .config import get_config_value
+from .omap import to_omap
 from .types import DerivedDefs
 from .types import TypeDefs
 
@@ -102,12 +103,12 @@ def transpile(src_file, out_file=None, **options) -> str:
 
     _validate_src_code(src_code)
 
-    type_defs = _normalize_types(_to_omap(src_code['types'],
-                                          recursive=True))
-    input_defs = _to_omap(src_code['inputs'])
-    output_defs = _to_omap(src_code['outputs'])
+    type_defs = _normalize_types(to_omap(src_code['types'],
+                                         recursive=True))
+    input_defs = to_omap(src_code['inputs'])
+    output_defs = to_omap(src_code['outputs'])
     derived_defs = _parse_raw_var_assignments(
-        _to_omap(src_code.get('derived')) or {}
+        to_omap(src_code.get('derived')) or {}
     )
     rules = _normalize_rules(src_code['rules'])
 
@@ -176,7 +177,7 @@ def _normalize_types(types: Dict[str, Dict[str, str]]) -> TypeDefs:
 
 def _parse_raw_var_assignments(raw_var_assignments: Dict[str, str]) \
         -> DerivedDefs:
-    var_assignments = []
+    var_assignments = OrderedDict()
     for raw_var_assignment, var_type in raw_var_assignments.items():
         if not var_type:
             raise ValueError(f'illegal variable assignment:'
@@ -189,7 +190,7 @@ def _parse_raw_var_assignments(raw_var_assignments: Dict[str, str]) \
             raise ValueError(f'illegal variable assignment:'
                              f' "{raw_var_assignment}"')
         var_name, _, expr = assignment_tokens
-        var_assignments.append((var_name, var_type, expr))
+        var_assignments[var_name] = (var_type, expr)
     return var_assignments
 
 
@@ -298,42 +299,6 @@ def _count_leading_spaces(s: str):
         if not s[i].isspace():
             return i
     return i
-
-
-def _to_omap(list_or_dict, recursive=False):
-    if not list_or_dict:
-        return list_or_dict
-
-    if _is_list_of_one_key_dicts(list_or_dict):
-        dict_copy = OrderedDict()
-        for item in list_or_dict:
-            key, item = dict(item).popitem()
-            dict_copy[key] = _to_omap(item) if recursive else item
-        return dict_copy
-
-    if recursive:
-        if isinstance(list_or_dict, list):
-            list_copy = []
-            for item in list_or_dict:
-                list_copy.append(_to_omap(item, recursive=True))
-            return list_copy
-        if isinstance(list_or_dict, dict):
-            dict_copy = OrderedDict()
-            for key, item in list_or_dict.items():
-                dict_copy[key] = _to_omap(item, recursive=True)
-            return dict_copy
-
-    return list_or_dict
-
-
-def _is_list_of_one_key_dicts(l):
-    try:
-        for item in l:
-            # noinspection PyUnusedLocal
-            (k, v), = item.items()
-    except (AttributeError, TypeError):
-        return False
-    return True
 
 
 def _import_module_from_file(full_path_to_module: str):

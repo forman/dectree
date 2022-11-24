@@ -8,6 +8,7 @@ from .config import CONFIG_NAME_FUNCTION_NAME
 from .config import CONFIG_NAME_INPUTS_NAME
 from .config import CONFIG_NAME_NOT_PATTERN
 from .config import CONFIG_NAME_NO_JIT
+from .config import CONFIG_NAME_FLOAT_TYPE
 from .config import CONFIG_NAME_OR_PATTERN
 from .config import CONFIG_NAME_OUTPUTS_NAME
 from .config import CONFIG_NAME_PARAMETERIZE
@@ -19,7 +20,6 @@ from .config import VECTORIZE_NONE
 from .config import VECTORIZE_PROP
 from .config import get_config_value
 from .decompiler import ExprDecompiler
-from .types import DerivedDef
 from .types import DerivedDefs
 from .types import PropDef
 from .types import PropFuncParamName
@@ -30,6 +30,8 @@ from .types import TypeDefs
 from .types import TypeName
 from .types import VarDefs
 from .types import VarName
+
+NO_INSPECTION = '# noinspection PyPep8Naming,SpellCheckingInspection'
 
 BUILT_IN_SCALAR_TYPES = {'float', 'int', 'boolean'}
 
@@ -70,12 +72,12 @@ class CodeGen:
         self.type_defs = OrderedDict(type_defs)
         self.input_defs = OrderedDict(input_defs)
         self.output_defs = OrderedDict(output_defs)
-        self.derived_defs = list(derived_defs or [])
+        self.derived_defs = OrderedDict(derived_defs)
         self.rules = list(rules)
         self.out_file = out_file
         self.output_assignments = None
 
-        for var_name, type_name, _ in derived_defs:
+        for var_name, (type_name, _) in derived_defs.items():
             if var_name not in self.output_defs:
                 self.output_defs[var_name] = type_name
 
@@ -105,6 +107,8 @@ class CodeGen:
                                                   CONFIG_NAME_AND_PATTERN)
         self.or_pattern = _get_config_op_pattern(options,
                                                  CONFIG_NAME_OR_PATTERN)
+        self.float_type = _get_config_op_pattern(options,
+                                                 CONFIG_NAME_FLOAT_TYPE)
 
         self.expr_gen = FuzzyExprGen(type_defs,
                                      self.input_defs,
@@ -127,32 +131,17 @@ class CodeGen:
         self._write_apply_rules_function()
 
     def _write_imports(self):
-        math_import = 'import math'
-        numba_import = 'from numba import jit, float64'
-        numba_experimental_import = 'from numba.experimental import jitclass'
-        numpy_import = 'import numpy as np'
+        self._write_lines('',
+                          'import math',
+                          '',
+                          'import numpy as np')
 
-        if self.derived_defs:
-            self._write_lines('', math_import)
-
-        if self.no_jit:
-            if self.vectorize == VECTORIZE_FUNC:
-                self._write_lines('', numpy_import)
-        else:
+        if not self.no_jit:
+            self._write_lines('from numba.experimental import jitclass',
+                              'from numba import jit',
+                              f'from numba import {self.float_type}')
             if self.vectorize == VECTORIZE_PROP:
-                self._write_lines('',
-                                  numba_import + ', vectorize',
-                                  numba_experimental_import,
-                                  numpy_import)
-            elif self.vectorize == VECTORIZE_FUNC:
-                self._write_lines('',
-                                  numba_import,
-                                  numba_experimental_import,
-                                  numpy_import)
-            else:
-                self._write_lines('',
-                                  numba_import,
-                                  numba_experimental_import)
+                self._write_lines('from numba import vectorize')
 
     def _write_type_prop_functions(self):
         numba_decorator = self._get_numba_decorator(prop_func=True)
@@ -172,6 +161,7 @@ class CodeGen:
                                    for line in func_body.split('\n')]
                 self._write_lines(
                     '', '',
+                    NO_INSPECTION,
                     numba_decorator,
                     func_header,
                     f'    # {type_name}.{prop_name}: {prop_value}',
@@ -182,6 +172,7 @@ class CodeGen:
         tab = '     '
         self._write_lines(
             '', '',
+            NO_INSPECTION,
             f'def get_{target}_names():',
             '    return ('
         )
@@ -211,6 +202,7 @@ class CodeGen:
 
         numba_decorator = self._get_numba_decorator()
         self._write_lines('', '',
+                          NO_INSPECTION,
                           numba_decorator,
                           f'def {self.function_name}({function_args}):')
 
@@ -225,15 +217,17 @@ class CodeGen:
         else:
             self._write_lines('    t0 = 1.0')
 
-        for derived_def in self.derived_defs:
-            self._write_derived_var(derived_def)
+        for var_name, (derived_def, source_expr) in self.derived_defs.items():
+            self._write_derived_var(var_name, derived_def, source_expr)
 
         for rule in self.rules:
             self._write_rule_body(rule, 1, 1)
 
     def _get_numba_decorator(self, prop_func=False):
         if self.vectorize == VECTORIZE_PROP and prop_func:
-            numba_decorator = '@vectorize([float64(float64)])'
+            numba_decorator = f'@vectorize([' \
+                              f'{self.float_type}({self.float_type})' \
+                              f'])'
         else:
             numba_decorator = '@jit(nopython=True)'
         if self.no_jit:
@@ -281,11 +275,14 @@ class CodeGen:
         spec_lines = ['{} = ['.format(spec_name)]
         for var_name in var_names:
             if param_values:
-                spec_lines.append(f'{tab}("{var_name}", float64),')
+                spec_lines.append(f'{tab}("{var_name}",'
+                                  f' {self.float_type}),')
             elif not self.no_jit and self.vectorize != VECTORIZE_NONE:
-                spec_lines.append(f'{tab}("{var_name}", float64[:]),')
+                spec_lines.append(f'{tab}("{var_name}",'
+                                  f' {self.float_type}[:]),')
             else:
-                spec_lines.append(f'{tab}("{var_name}", float64),')
+                spec_lines.append(f'{tab}("{var_name}",'
+                                  f' {self.float_type}),')
         spec_lines.append(']')
 
         if self.no_jit:
@@ -306,6 +303,7 @@ class CodeGen:
             init_head = f'{tab}def __init__(self):'
 
         self._write_lines('', '',
+                          NO_INSPECTION,
                           numba_line,
                           f'class {class_name}:',
                           init_head)
@@ -318,12 +316,12 @@ class CodeGen:
             elif is_io and self.vectorize == VECTORIZE_FUNC:
                 self._write_lines(
                     f'{tab}{tab}self.{var_name}'
-                    f' = np.zeros(size, dtype=np.float64)'
+                    f' = np.zeros(size, dtype=np.{self.float_type})'
                 )
             elif self.vectorize != VECTORIZE_NONE:
                 self._write_lines(
                     f'{tab}{tab}self.{var_name}'
-                    f' = np.zeros(1, dtype=np.float64)'
+                    f' = np.zeros(1, dtype=np.{self.float_type})'
                 )
             else:
                 self._write_lines(
@@ -384,23 +382,47 @@ class CodeGen:
         if keyword == 'if' or keyword == 'elif':
             condition = self.expr_gen.gen_expr(condition_expr)
             if keyword == 'if':
-                self._write_lines('{tind}#{sind}{key} {expr}:'.format(tind=target_indent, sind=source_indent,
-                                                                      key=keyword, expr=condition_expr))
+                self._write_lines(
+                    '{tind}#{sind}{key} {expr}:'.format(tind=target_indent,
+                                                        sind=source_indent,
+                                                        key=keyword,
+                                                        expr=condition_expr)
+                )
                 target_value = self.and_pattern.format(x=t0, y=condition)
             else:
                 tp = 't' + str(target_level - 2)
-                self._write_lines('{tind}#{sind}{key} {expr}:'.format(tind=target_indent, sind=source_indent,
-                                                                      key=keyword, expr=condition_expr))
-                target_value = self.and_pattern.format(x=tp, y=not_pattern.format(x=t0))
-                self._write_lines('{tind}{tvar} = {tval}'.format(tind=target_indent, tvar=t0, tval=target_value))
+                self._write_lines(
+                    '{tind}#{sind}{key} {expr}:'.format(tind=target_indent,
+                                                        sind=source_indent,
+                                                        key=keyword,
+                                                        expr=condition_expr)
+                )
+                target_value = self.and_pattern.format(x=tp,
+                                                       y=not_pattern.format(
+                                                           x=t0))
+                self._write_lines(
+                    '{tind}{tvar} = {tval}'.format(tind=target_indent,
+                                                   tvar=t0,
+                                                   tval=target_value))
                 target_value = self.and_pattern.format(x=t0, y=condition)
         else:
-            self._write_lines('{tind}#{sind}else:'.format(tind=target_indent, sind=source_indent))
-            target_value = self.and_pattern.format(x=t0, y=not_pattern.format(x=t1))
-        self._write_lines('{tind}{tvar} = {tval}'.format(tind=target_indent, tvar=t1, tval=target_value))
+            self._write_lines(
+                '{tind}#{sind}else:'.format(tind=target_indent,
+                                            sind=source_indent)
+            )
+            target_value = self.and_pattern.format(x=t0,
+                                                   y=not_pattern.format(x=t1))
+        self._write_lines(
+            '{tind}{tvar} = {tval}'.format(tind=target_indent,
+                                           tvar=t1,
+                                           tval=target_value))
         self._write_rule_body(rule_body, source_level + 1, target_level + 1)
 
-    def _write_rule_assignment(self, var_name: str, var_value: str, source_level: int, target_level: int):
+    def _write_rule_assignment(self,
+                               var_name: str,
+                               var_value: str,
+                               source_level: int,
+                               target_level: int):
 
         source_indent = (source_level * 4) * ' '
         if self.vectorize == VECTORIZE_FUNC:
@@ -430,9 +452,11 @@ class CodeGen:
         out_pattern = '{tval}'
         if len(output_assignments) > 1:
             if self.vectorize == VECTORIZE_FUNC:
-                out_pattern = self.or_pattern.format(x='outputs.{name}[i]', y=out_pattern)
+                out_pattern = self.or_pattern.format(x='outputs.{name}[i]',
+                                                     y=out_pattern)
             else:
-                out_pattern = self.or_pattern.format(x='outputs.{name}', y=out_pattern)
+                out_pattern = self.or_pattern.format(x='outputs.{name}',
+                                                     y=out_pattern)
 
         source_line_pattern = '{tind}#{sind}{name} = {sval}'
         if self.vectorize == VECTORIZE_FUNC:
@@ -440,15 +464,20 @@ class CodeGen:
         else:
             target_line_pattern = '{tind}outputs.{name} = ' + out_pattern
 
-        self._write_lines(source_line_pattern.format(tind=target_indent, sind=source_indent,
-                                                     name=var_name, sval=var_value),
-                          target_line_pattern.format(tind=target_indent, name=var_name,
+        self._write_lines(source_line_pattern.format(tind=target_indent,
+                                                     sind=source_indent,
+                                                     name=var_name,
+                                                     sval=var_value),
+                          target_line_pattern.format(tind=target_indent,
+                                                     name=var_name,
                                                      tval=assignment_value))
 
-    def _write_derived_var(self, var_assignment: DerivedDef):
-        var_name, var_type, source_expr = var_assignment
+    def _write_derived_var(self, var_name, var_type: str, source_expr: str):
 
-        decompiler = _ExprDecompiler(self.input_defs, self.output_defs, self.vectorize)
+        decompiler = DerivedExprDecompiler(self.input_defs,
+                                           self.output_defs,
+                                           self.derived_defs,
+                                           self.vectorize)
         target_expr = decompiler.decompile(ast.parse(source_expr))
 
         source_indent = 4 * ' '
@@ -463,13 +492,22 @@ class CodeGen:
         else:
             target_line_pattern = '{tind}outputs.{name} = {expr}'
 
-        self._write_lines(source_line_pattern.format(tind=target_indent, sind=source_indent,
-                                                     name=var_name, expr=source_expr, type=var_type),
-                          target_line_pattern.format(tind=target_indent, name=var_name,
+        self._write_lines(source_line_pattern.format(tind=target_indent,
+                                                     sind=source_indent,
+                                                     name=var_name,
+                                                     expr=source_expr,
+                                                     type=var_type),
+                          target_line_pattern.format(tind=target_indent,
+                                                     name=var_name,
                                                      expr=target_expr))
 
-    def _get_output_def(self, var_name: VarName, prop_name: PropName) -> Tuple[TypeName, PropDef]:
-        return _get_type_name_and_prop_def(var_name, prop_name, self.type_defs, self.output_defs)
+    def _get_output_def(self,
+                        var_name: VarName,
+                        prop_name: PropName) -> Tuple[TypeName, PropDef]:
+        return _get_type_name_and_prop_def(var_name,
+                                           prop_name,
+                                           self.type_defs,
+                                           self.output_defs)
 
     def _write_lines(self, *lines):
         for line in lines:
@@ -477,8 +515,10 @@ class CodeGen:
 
     def _check_var_types(self, var_defs):
         for var_name, var_type in var_defs.items():
-            if var_type not in self.type_defs and var_type not in BUILT_IN_SCALAR_TYPES:
-                raise ValueError('Type "{}" of variable "{}" is undefined'.format(var_type, var_name))
+            if var_type not in self.type_defs \
+                    and var_type not in BUILT_IN_SCALAR_TYPES:
+                raise ValueError(f'Type "{var_type}" of'
+                                 f' variable "{var_name}" is undefined')
 
 
 class FuzzyExprGen:
@@ -505,11 +545,13 @@ class FuzzyExprGen:
         self.type_defs = type_defs
         self.input_defs = input_defs
         self.output_defs = output_defs
-        self.derived_defs = derived_defs or []
+        self.derived_defs = derived_defs or {}
         self.var_defs = dict(input_defs)
         self.var_defs.update(output_defs)
-        self.var_defs.update({item[0]: item[1]
-                              for item in self.derived_defs})
+        self.var_defs.update({
+            var_name: var_type
+            for var_name, (var_type, _) in self.derived_defs.items()
+        })
 
         self.parameterize = parameterize
         self.vectorize = vectorize
@@ -523,7 +565,8 @@ class FuzzyExprGen:
 
         body = mod.body
         if len(body) != 1 or not isinstance(body[0], ast.Expr):
-            raise ValueError('Invalid condition expression: [{}]'.format(rule_condition))
+            raise ValueError(f'Invalid condition'
+                             f' expression: [{rule_condition}]')
 
         expr = body[0].value
         return self._transpile_expression(expr)
@@ -533,41 +576,58 @@ class FuzzyExprGen:
 
             left = expr.left
             if not isinstance(left, ast.Name):
-                raise ValueError('Left side of comparison must be the name of an input or an output')
+                raise ValueError('Left side of comparison must'
+                                 ' be the name of an input or an output')
 
             var_name = expr.left.id
             if var_name in self.input_defs:
                 container_ref = 'inputs.'
-            elif var_name in self.output_defs:
+            elif var_name in self.var_defs:
                 container_ref = 'outputs.'
             else:
                 container_ref = ''
 
             prop_name = expr.comparators[0].id
             compare_op = expr.ops[0]
-            if isinstance(compare_op, ast.Eq) or isinstance(compare_op, ast.Is):
+            if isinstance(compare_op, ast.Eq) \
+                    or isinstance(compare_op, ast.Is):
                 if self.vectorize == VECTORIZE_FUNC:
                     op_pattern = '_{t}_{r}({c}{l}{p}[i])'
                 else:
                     op_pattern = '_{t}_{r}({c}{l}{p})'
-            elif isinstance(compare_op, ast.NotEq) or isinstance(compare_op, ast.IsNot):
+            elif isinstance(compare_op, ast.NotEq) \
+                    or isinstance(compare_op, ast.IsNot):
                 if self.vectorize == VECTORIZE_FUNC:
-                    op_pattern = self.not_pattern.format(x='_{t}_{r}({c}{l}{p}[i])')
+                    op_pattern = self.not_pattern.format(
+                        x='_{t}_{r}({c}{l}{p}[i])')
                 else:
-                    op_pattern = self.not_pattern.format(x='_{t}_{r}({c}{l}{p})')
+                    op_pattern = self.not_pattern.format(
+                        x='_{t}_{r}({c}{l}{p})')
             else:
-                raise ValueError('"==", "!=", "is", and "is not" are the only supported comparison operators')
-            type_name, prop_def = _get_type_name_and_prop_def(var_name, prop_name, self.type_defs, self.var_defs)
+                raise ValueError('"==", "!=", "is", and "is not"'
+                                 ' are the only supported comparison'
+                                 ' operators')
+            type_name, prop_def = _get_type_name_and_prop_def(
+                var_name, prop_name, self.type_defs, self.var_defs
+            )
             _, func_params, _ = prop_def
             if self.parameterize and func_params:
-                params = ', ' + ', '.join(['{p}=params.{qp}'.format(p=param_name,
-                                                                    qp=_get_qualified_param_name(type_name,
-                                                                                                 prop_name,
-                                                                                                 param_name))
-                                           for param_name in func_params.keys()])
+                params = ', ' + ', '.join(
+                    ['{p}=params.{qp}'.format(p=param_name,
+                                              qp=_get_qualified_param_name(
+                                                  type_name,
+                                                  prop_name,
+                                                  param_name)
+                                              )
+                     for param_name in func_params.keys()]
+                )
             else:
                 params = ''
-            return op_pattern.format(t=type_name, r=prop_name, l=var_name, p=params, c=container_ref)
+            return op_pattern.format(t=type_name,
+                                     r=prop_name,
+                                     l=var_name,
+                                     p=params,
+                                     c=container_ref)
 
         if isinstance(expr, ast.UnaryOp):
             op = expr.op
@@ -586,7 +646,8 @@ class FuzzyExprGen:
             elif isinstance(op, ast.Or):
                 op_pattern = self.or_pattern
             else:
-                raise ValueError('"and" and "or" are the only supported binary operators')
+                raise ValueError('"and" and "or" are the only'
+                                 ' supported binary operators')
 
             t1 = None
             for v in expr.values:
@@ -601,18 +662,22 @@ class FuzzyExprGen:
         raise ValueError('Unsupported expression')
 
 
-def _get_type_name_and_prop_def(var_name: VarName,
-                                prop_name: PropName,
-                                type_defs: TypeDefs,
-                                var_defs: VarDefs) -> Tuple[TypeName, PropDef]:
+def _get_type_name_and_prop_def(
+        var_name: VarName,
+        prop_name: PropName,
+        type_defs: TypeDefs,
+        var_defs: VarDefs
+) -> Tuple[TypeName, PropDef]:
     type_name = var_defs.get(var_name)
     if type_name is None:
         raise ValueError('Variable "{}" is undefined'.format(var_name))
     type_def = type_defs.get(type_name)
     if type_def is None:
-        raise ValueError('Type "{}" of variable "{}" is undefined'.format(type_name, var_name))
+        raise ValueError(f'Type "{type_name}" of'
+                         f' variable "{var_name}" is undefined')
     if prop_name not in type_def:
-        raise ValueError('"{}" is not a property of type "{}" of variable "{}"'.format(prop_name, type_name, var_name))
+        raise ValueError(f'"{prop_name}" is not a property'
+                         f' of type "{type_name}" of variable "{var_name}"')
     prop_def = type_def[prop_name]
     return type_name, prop_def
 
@@ -627,21 +692,33 @@ def _get_config_op_pattern(options, op_pattern_name):
     op_pattern = get_config_value(options, op_pattern_name)
     no_jit = get_config_value(options, CONFIG_NAME_NO_JIT)
     vectorize = get_config_value(options, CONFIG_NAME_VECTORIZE)
-    return _get_effective_op_pattern(op_pattern, no_jit=no_jit, vectorize=vectorize)
+    return _get_effective_op_pattern(op_pattern,
+                                     no_jit=no_jit,
+                                     vectorize=vectorize)
 
 
-def _get_effective_op_pattern(op_pattern, no_jit=False, vectorize=VECTORIZE_NONE):
+def _get_effective_op_pattern(op_pattern,
+                              no_jit=False,
+                              vectorize=VECTORIZE_NONE):
     if not no_jit and vectorize == VECTORIZE_PROP:
-        # TODO: improve following naive replacements, e.g. use regex-based approach
-        return op_pattern.replace('min(', 'np.minimum(').replace('max(', 'np.maximum(')
+        # TODO: improve following naive replacements,
+        #  e.g. use regex-based approach
+        return op_pattern \
+            .replace('min(', 'np.minimum(') \
+            .replace('max(', 'np.maximum(')
     else:
         return op_pattern
 
 
-class _ExprDecompiler(ExprDecompiler):
-    def __init__(self, input_defs: VarDefs, output_defs: VarDefs, vectorize: str = None):
+class DerivedExprDecompiler(ExprDecompiler):
+    def __init__(self,
+                 input_defs: VarDefs,
+                 output_defs: VarDefs,
+                 derived_defs: DerivedDefs,
+                 vectorize: str = None):
         self.input_defs = input_defs
         self.output_defs = output_defs
+        self.derived_defs = derived_defs
         self.vectorize = vectorize
 
     def transform_name(self, name: ast.Name):
@@ -651,7 +728,7 @@ class _ExprDecompiler(ExprDecompiler):
         container_ref = ''
         if var_name in self.input_defs:
             container_ref = 'inputs.'
-        elif var_name in self.input_defs:
+        elif var_name in self.input_defs or var_name in self.derived_defs:
             container_ref = 'outputs.'
 
         subscript = ''
