@@ -3,6 +3,9 @@ test/dectree_test.py
 test/dectree_test_p.py
 test/dectree_test_v.py
 
+# Current examples
+examples/intertidal_flat_classif*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

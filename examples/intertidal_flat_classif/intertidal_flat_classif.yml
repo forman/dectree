@@ -88,7 +88,7 @@ inputs:
   #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\steigung_nIR_SWIR1.img"
   #  file pos = 1
   #end variable
-  - b6: B6
+  - b6: float
   #begin variable
   #  variable name = "b7"
   #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\flh.img"
@@ -106,25 +106,25 @@ inputs:
   #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_483.img"
   #  file pos = 1
   #end variable
-  - b12: B12
+  - b12: float
   #begin variable
   #  variable name = "b13"
   #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_561.img"
   #  file pos = 1
   #end variable
-  - b13: B13
+  - b13: float
   #begin variable
   #  variable name = "b14"
   #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_655.img"
   #  file pos = 1
   #end variable
-  - b14: B14
+  - b14: float
   #begin variable
   #  variable name = "b15"
   #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_865.img"
   #  file pos = 1
   #end variable
-  - b15: B15
+  #- b15: B15
   #begin variable
   #  variable name = "b16"
   #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\reflec_1609.img"
@@ -142,10 +142,7 @@ inputs:
   #  file name = "Z:\related\IntertidalFlats\Prozessierungen\20160510_197-22_L8\indices\indices_20160510_SH_L8_sand_megarippel.data\summary_error.img"
   #  file pos = 1
   #end variable
-  - b100: B100
-  # b12+b13+b14
-  - bsum: BSum
-
+  #- b100: B100
 
 outputs:
   #begin node
@@ -278,6 +275,10 @@ outputs:
   #  class rgb = 0,60,255
   #end node
   - Wasser2: Class
+
+derived:
+  # b12+b13+b14
+  - bsum = b12 + b13 + b14: BSum
 
 rules:
   #begin node

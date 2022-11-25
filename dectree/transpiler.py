@@ -1,6 +1,9 @@
 import os
 import os.path
+import sys
+import tempfile
 from collections import OrderedDict
+from io import StringIO
 from typing import List, Dict, Any, Tuple, Union
 
 # noinspection PyPackageRequirements
@@ -8,18 +11,78 @@ import yaml  # from pyyaml
 
 import dectree.propfuncs as propfuncs
 from .codegen import gen_code
+from .config import CONFIG_NAME_FUNCTION_NAME
+from .config import CONFIG_NAME_INPUTS_NAME
+from .config import CONFIG_NAME_OUTPUTS_NAME
+from .config import CONFIG_NAME_PARAMETERIZE
+from .config import CONFIG_NAME_PARAMS_NAME
+from .config import get_config_value
+from .omap import to_omap
+from .types import DerivedDefs
 from .types import TypeDefs
 
 
-def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
+# noinspection PyShadowingBuiltins
+def compile(src_file, **options) -> Tuple[Any, ...]:
     """
-    Generate a decision tree function by transpiling *src_file* to *out_file* using the given *options*.
-    Return the path to the generated file, if any, otherwise return ``None``.
+    Generate a decision tree function by compiling *src_file*
+    using the given options.
+    Return a tuple (function, Inputs, Outputs).
+    If option ``parameterize`` is set,
+    return (function, Inputs, Outputs, Params).
 
-    :param src_file: A file descriptor or a path-like object to the decision tree definition source file (YAML format)
-    :param out_file: A file descriptor or a path-like object to the module output file (Python)
-    :param options: options, refer to `dectree --help`
-    :return: A path to the written module output file (Python) or None if *out_file* is a file descriptor
+    Usage:::
+
+        apply_rules, Inputs, Outputs, Params = compile(src_file,
+                                                       parameterize=True)
+        inputs = Inputs()
+        outputs = Outputs()
+        params = Params()
+        # set inputs members here
+        # set params members here
+        apply_rules(inputs, outputs, params)
+        # get outputs members here
+
+    :param src_file: A file descriptor or a path-like object
+        to the decision tree definition source file (YAML format)
+    :param options: Compiler/Transpiler options
+    :return: A tuple containing the compiler function and the
+        classes used to generate the functions's arguments.
+    """
+    text_io = StringIO()
+    transpile(src_file, out_file=text_io, **options)
+
+    py_code = text_io.getvalue()
+
+    _, out_path = tempfile.mkstemp(suffix='.py', prefix='dectree_', text=True)
+    with open(out_path, 'w') as out_fp:
+        out_fp.write(py_code)
+
+    dectree_module = _import_module_from_file(out_path)
+
+    names = [CONFIG_NAME_FUNCTION_NAME,
+             CONFIG_NAME_INPUTS_NAME,
+             CONFIG_NAME_OUTPUTS_NAME]
+    if get_config_value(options, CONFIG_NAME_PARAMETERIZE):
+        names += [CONFIG_NAME_PARAMS_NAME]
+    names = [get_config_value(options, name) for name in names]
+
+    return tuple(getattr(dectree_module, name) for name in names)
+
+
+def transpile(src_file, out_file=None, **options) -> str:
+    """
+    Generate a decision tree function by transpiling *src_file*
+    to *out_file* using the given *options*.
+    Return the generated output file, if any, otherwise return None.
+
+    :param src_file: A file descriptor or a path-like object
+        to the decision tree definition source file (YAML format)
+    :param out_file: A file descriptor or a path-like object
+        to the module output file (Python)
+    :param options: Compiler/Transpiler options
+    :return: A path to the written module output file (Python)
+        or None if *out_file* is a file descriptor
     """
 
     try:
@@ -30,7 +93,7 @@ def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
         src_path = None
 
     try:
-        src_code = yaml.load(fd)
+        src_code = yaml.safe_load(fd)
     finally:
         if src_path:
             fd.close()
@@ -38,23 +101,26 @@ def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
     if not src_code:
         raise ValueError('Empty decision tree definition')
 
-    sections = ('types', 'inputs', 'outputs', 'rules')
-    if not all([section in src_code for section in sections]):
-        raise ValueError('Invalid decision tree definition: missing section {} or all of them'.format(sections))
+    _validate_src_code(src_code)
 
-    for section in sections:
-        if not src_code[section]:
-            raise ValueError("Invalid decision tree definition: section '{}' is empty".format(section))
-
-    types = _normalize_types(_to_omap(src_code['types'], recursive=True))
-    input_defs = _to_omap(src_code['inputs'])
-    output_defs = _to_omap(src_code['outputs'])
+    type_defs = _normalize_types(to_omap(src_code['types'],
+                                         recursive=True))
+    input_defs = to_omap(src_code['inputs'])
+    output_defs = to_omap(src_code['outputs'])
+    derived_defs = _parse_raw_var_assignments(
+        to_omap(src_code.get('derived')) or {}
+    )
     rules = _normalize_rules(src_code['rules'])
 
     src_options = dict(src_code.get('options') or {})
     src_options.update(options or {})
 
-    py_code = gen_code(types, input_defs, output_defs, rules, **src_options)
+    py_code = gen_code(type_defs,
+                       input_defs,
+                       output_defs,
+                       derived_defs,
+                       rules,
+                       **src_options)
 
     if out_file:
         try:
@@ -77,6 +143,22 @@ def transpile(src_file, out_file=None, **options: Dict[str, Any]) -> str:
     return out_path
 
 
+def _validate_src_code(src_code):
+    required_sections = ('types', 'inputs', 'outputs', 'rules')
+    possible_sections = required_sections + ('derived', 'options')
+    for section in required_sections:
+        if section not in src_code:
+            raise ValueError(f'Invalid decision tree definition:'
+                             f' missing section "{section}"')
+        if not src_code[section]:
+            raise ValueError(f'Invalid decision tree definition:'
+                             f' section "{section}" is empty')
+    for section in src_code:
+        if section not in possible_sections:
+            raise ValueError(f'Invalid decision tree definition:'
+                             f' unknown section "{section}"')
+
+
 def _normalize_types(types: Dict[str, Dict[str, str]]) -> TypeDefs:
     type_defs = OrderedDict()
     for type_name, type_properties in types.items():
@@ -86,12 +168,30 @@ def _normalize_types(types: Dict[str, Dict[str, str]]) -> TypeDefs:
             try:
                 prop_result = eval(prop_value, vars(propfuncs), {})
             except Exception:
-                raise ValueError('Illegal value for property "{}" of type "{}": {}'.format(prop_name,
-                                                                                           type_name,
-                                                                                           prop_value))
+                raise ValueError(f'Illegal value for property "{prop_name}"'
+                                 f' of type "{type_name}": {prop_value}')
             func_params, func_body = prop_result
             type_def[prop_name] = prop_value, func_params, func_body
     return type_defs
+
+
+def _parse_raw_var_assignments(raw_var_assignments: Dict[str, str]) \
+        -> DerivedDefs:
+    var_assignments = OrderedDict()
+    for raw_var_assignment, var_type in raw_var_assignments.items():
+        if not var_type:
+            raise ValueError(f'illegal variable assignment:'
+                             f' "{raw_var_assignment}: {var_type}"')
+        assignment_tokens = raw_var_assignment.split(None, 2)
+        if len(assignment_tokens) != 3 \
+                or not assignment_tokens[0] \
+                or assignment_tokens[1] != '=' \
+                or not assignment_tokens[2]:
+            raise ValueError(f'illegal variable assignment:'
+                             f' "{raw_var_assignment}"')
+        var_name, _, expr = assignment_tokens
+        var_assignments[var_name] = (var_type, expr)
+    return var_assignments
 
 
 def _normalize_rules(raw_rules):
@@ -104,7 +204,8 @@ def _normalize_rule(raw_rule: Union[str, List]):
     return _parse_raw_rule(raw_rule)
 
 
-def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) -> List[Union[Tuple, List]]:
+def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) \
+        -> List[Union[Tuple, List]]:
     # print(raw_rule)
     n = len(raw_rule)
     parsed_rule = []
@@ -120,38 +221,43 @@ def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) -> List[Union[Tuple, List
         if stmt_part:
             stmt_tokens = stmt_part.split(None, 1)
             if len(stmt_tokens) == 0:
-                raise ValueError('illegal rule part: {}'.format(stmt_part))
+                raise ValueError(f'illegal rule part: {stmt_part}')
 
             keyword = stmt_tokens[0]
 
             if keyword == 'if':
                 if i != 0:
-                    raise ValueError('"if" must be first in rule: {}'.format(stmt_part))
+                    raise ValueError(f'"if" must be first in rule:'
+                                     f' {stmt_part}')
                 if len(stmt_tokens) != 2 or not stmt_tokens[1]:
-                    raise ValueError('illegal rule part: {}'.format(stmt_part))
+                    raise ValueError(f'illegal rule part: {stmt_part}')
                 condition = stmt_tokens[1]
             elif keyword == 'else':
                 if len(stmt_tokens) == 1:
                     if i < n - 2:
-                        raise ValueError('"else" must be last in rule: {}'.format(stmt_part))
+                        raise ValueError(f'"else" must be last in rule:'
+                                         f' {stmt_part}')
                     condition = None
                 else:
                     elif_stmt_tokens = stmt_tokens[1].split(None, 1)
                     if elif_stmt_tokens[0] == 'if':
                         keyword, condition = 'elif', elif_stmt_tokens[1]
                     else:
-                        raise ValueError('illegal rule part: {}'.format(stmt_part))
+                        raise ValueError(f'illegal rule part: {stmt_part}')
             elif keyword == 'elif':
                 if len(stmt_tokens) != 2 or not stmt_tokens[1]:
-                    raise ValueError('illegal rule part: {}'.format(stmt_part))
+                    raise ValueError(f'illegal rule part: {stmt_part}')
                 condition = stmt_tokens[1]
             else:
-                raise ValueError('illegal rule part: {}'.format(stmt_part))
+                raise ValueError(f'illegal rule part: {stmt_part}')
 
             if condition:
-                parsed_rule.append((keyword, condition, _parse_raw_rule(stmt_body)))
+                parsed_rule.append((keyword,
+                                    condition,
+                                    _parse_raw_rule(stmt_body)))
             else:
-                parsed_rule.append((keyword, _parse_raw_rule(stmt_body)))
+                parsed_rule.append((keyword,
+                                    _parse_raw_rule(stmt_body)))
 
         elif assignment:
             # noinspection PyUnresolvedReferences
@@ -160,12 +266,14 @@ def _parse_raw_rule(raw_rule: List[Union[Dict, List]]) -> List[Union[Tuple, List
                     or not assignment_parts[0].isidentifier() \
                     or assignment_parts[1] != '=' \
                     or not assignment_parts[2]:
-                raise ValueError('illegal rule part: {}'.format(stmt_part))
+                raise ValueError(f'illegal rule part: {stmt_part}')
 
-            parsed_rule.append(('=', assignment_parts[0], assignment_parts[2]))
+            parsed_rule.append(('=',
+                                assignment_parts[0],
+                                assignment_parts[2]))
 
         else:
-            raise ValueError('illegal rule part: {}'.format(stmt_part))
+            raise ValueError(f'illegal rule part: {stmt_part}')
 
     return parsed_rule
 
@@ -182,7 +290,7 @@ def _load_raw_rule(rule_code: str):
                 yml_lines.append(indent + '- ' + content)
             else:
                 yml_lines.append(indent + content)
-    return yaml.load('\n'.join(yml_lines))
+    return yaml.safe_load('\n'.join(yml_lines))
 
 
 def _count_leading_spaces(s: str):
@@ -193,37 +301,14 @@ def _count_leading_spaces(s: str):
     return i
 
 
-def _to_omap(list_or_dict, recursive=False):
-    if not list_or_dict:
-        return list_or_dict
-
-    if _is_list_of_one_key_dicts(list_or_dict):
-        dict_copy = OrderedDict()
-        for item in list_or_dict:
-            key, item = dict(item).popitem()
-            dict_copy[key] = _to_omap(item) if recursive else item
-        return dict_copy
-
-    if recursive:
-        if isinstance(list_or_dict, list):
-            list_copy = []
-            for item in list_or_dict:
-                list_copy.append(_to_omap(item, recursive=True))
-            return list_copy
-        if isinstance(list_or_dict, dict):
-            dict_copy = OrderedDict()
-            for key, item in list_or_dict.items():
-                dict_copy[key] = _to_omap(item, recursive=True)
-            return dict_copy
-
-    return list_or_dict
-
-
-def _is_list_of_one_key_dicts(l):
+def _import_module_from_file(full_path_to_module: str):
+    module_dir, module_file = os.path.split(full_path_to_module)
+    module_name, module_ext = os.path.splitext(module_file)
     try:
-        for item in l:
-            # noinspection PyUnusedLocal
-            (k, v), = item.items()
-    except (AttributeError, TypeError):
-        return False
-    return True
+        sys.path.append(module_dir)
+        module_obj = __import__(module_name)
+        module_obj.__file__ = full_path_to_module
+        globals()[module_name] = module_obj
+        return module_obj
+    finally:
+        sys.path.remove(module_dir)

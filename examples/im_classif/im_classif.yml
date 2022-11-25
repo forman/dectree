@@ -2,23 +2,19 @@ options:
   vectorize: prop
 
 types:
-
   Radiance:
     - LOW: inv_ramp(x1=0, x2=127)
     - MIDDLE: triangular(x1=0, x2=127, x3=255)
     - HIGH: ramp(x1=127, x2=255)
     - VERY_HIGH: ramp(x1=180, x2=220)
-
   Certainty:
     - "FALSE": false()
     - "TRUE": true()
-
 
 inputs:
   - red: Radiance
   - green: Radiance
   - blue: Radiance
-
 
 outputs:
   - grey: Certainty
@@ -27,9 +23,15 @@ outputs:
   - dark: Certainty
   - not_dark: Certainty
   - cloudy: Certainty
+  - mean: Radiance
 
+derived:
+  - mean = (red + green + blue) / 3: Radiance
 
 rules:
+  - |
+    if mean is VERY_HIGH:
+       cloudy = TRUE
 
   - |
     if red is VERY_HIGH and green is VERY_HIGH and blue is VERY_HIGH:

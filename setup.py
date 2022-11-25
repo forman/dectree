@@ -9,7 +9,7 @@ setup(
     author='Norman Fomferra',
     author_email='',
     description='Fuzzy Decision Tree',
-    requires=['numba' , 'numpy', 'pyyaml'],
+    requires=['numba', 'numpy', 'pyyaml'],
     entry_points={
         'console_scripts': [
             'dectree = dectree.main:main',

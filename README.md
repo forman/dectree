@@ -34,14 +34,15 @@ For example, the condition `x is HIGH and y is not SLOW` "fuzzifies" to `min(HIG
 Available membership functions are
 
 * `ramp(x1=0, x2=1)` a ramp with positive slope for x in the range x1 to x2, 0 if x < x1,
-  and 1 if x > x2.
+  and 1 if x > x2. The inverse is `inv_ramp()` with same parameters.
 * `triangular(x1=0, x2=0, x3=1)` - a ramp with positive slope for x in the range x1 to x2,
   a ramp with negative slope in the range x2 to x3, 0 if x < x1 or x > x3.
+  The inverse is `inv_triangular()` with same parameters.
 * `trapezoid(x1=0, x2=1/3, x3=2/3, x4=1)` - a ramp with positive slope for x in the range x1 to x2,
   a ramp with negative slope in the range x2 to x3, 0 if x < x1 or x > x3.
-
-The inverse of the functions above are `inv_ramp`, `inv_triangular`, `inv_trapezoid` 
-with parameters.
+  The inverse is `inv_trapezoid()` with same parameters.
+* `eq(x0, dx=0)`, `ne(x0, dx=0)`, `lt(x0, dx=0)`, `le(x0, dx=0)`, `gt(x0, dx=0)`, `ge(x0, dx=0)` with
+  which all yield fuzzy values in the range if x > x0 - dx and x < x0 + dx, except x is exactly x0.
 
 The following are not really membership functions as they return constant truth values:
 
@@ -126,13 +127,13 @@ The rule's `<CONDITION>` is a conditional expression comprising comparisons of t
 `<INPUT> is <PROPERTY>` which can be combined using the logical `and`, `or`, 
 and `not` operators having the common precedences. Parentheses can be used to control
 expression precedences. A conditional expression `<CONDITION>` is translated by a function
-`translate()` as follows:
+`translate_expr()` as follows:
 
 * `<INPUT> is <PROPERTY>` or also `<INPUT> == <PROPERTY>` translates into a function call `<TYPE>_<PROPERTY>(<INPUT>)` that computes the 
    truth value of `<INPUT>` with respect to the given property `<PROPERTY>` defined for type `<TYPE>`.
-* `not <CONDITION>` translates into `1.0 - translate(<CONDITION>)` 
-* `<CONDITION_1> and <CONDITION_2>` translates into `min(translate(<CONDITION_1>), translate(<CONDITION_2>))` 
-* `<CONDITION_1> or <CONDITION_2>` translates into `max(translate(<CONDITION_1>, translate(<CONDITION_2>))`
+* `not <CONDITION>` translates into `1.0 - translate_expr(<CONDITION>)` 
+* `<CONDITION_1> and <CONDITION_2>` translates into `min(translate_expr(<CONDITION_1>), translate_expr(<CONDITION_2>))` 
+* `<CONDITION_1> or <CONDITION_2>` translates into `max(translate_expr(<CONDITION_1>, translate_expr(<CONDITION_2>))`
  
 ### Translation
 
@@ -148,7 +149,7 @@ will translate into
     t0 = 1.0
     
     # if <CONDITION>:
-    t1 = min(t0, translate(<CONDITION>))
+    t1 = min(t0, translate_expr(<CONDITION>))
 
     #     <OUTPUT_1> = <VALUE_1>
     <OUTPUT_1> = min(t1, <VALUE_1>)
@@ -182,13 +183,13 @@ thus the maximum value of all possible values for `<OUTPUT_2>` is taken
     t0 = 1.0
 
     # if <COND_1>:
-    t1 = min(t0, translate(<COND_1>))
+    t1 = min(t0, translate_expr(<COND_1>))
 
     #     if <COND_2>:
-    t2 = min(t1, translate(<COND_2>))
+    t2 = min(t1, translate_expr(<COND_2>))
 
     #         if <COND_3>:
-    t3 = min(t2, translate(<COND_3>))
+    t3 = min(t2, translate_expr(<COND_3>))
 
     #             <OUTPUT_1> = <VALUE_1>
     <OUTPUT_1> = min(t3, <VALUE_1>)
@@ -200,7 +201,7 @@ thus the maximum value of all possible values for `<OUTPUT_2>` is taken
     t1 = min(t0, 1.0 - t1)
     
     #     if <COND_4>:
-    t2 = min(t1, translate(<COND_4>))
+    t2 = min(t1, translate_expr(<COND_4>))
     
     #         <OUTPUT_3> = <VALUE_3> 
     <OUTPUT_3> = min(t2, <VALUE_3>)
@@ -209,7 +210,7 @@ thus the maximum value of all possible values for `<OUTPUT_2>` is taken
     t2 = min(t1, 1.0 - t2)
 
     #         if <COND_5>:
-    t3 = min(t2, translate(<COND_5>))
+    t3 = min(t2, translate_expr(<COND_5>))
     
     #             <OUTPUT_4> = <VALUE_4> 
     <OUTPUT_4> = min(t3, <VALUE_4>)
@@ -219,4 +220,12 @@ thus the maximum value of all possible values for `<OUTPUT_2>` is taken
 
     #             <OUTPUT_1> = <VALUE_1> 
     <OUTPUT_1> = max(<OUTPUT_1>, min(t3, <VALUE_1>))
+
+
+### Examples
+
+See decision tree definition files in [examples](https://github.com/forman/dectree/tree/master/examples):
+
+* [im_classif.yml](https://github.com/forman/dectree/blob/master/examples/im_classif/im_classif.yml)
+* [intertidal_flat_classif_fuz.yml](https://github.com/forman/dectree/blob/master/examples/intertidal_flat_classif/intertidal_flat_classif_fuz.yml)
 

@@ -1,4 +1,6 @@
 
+import math
+
 from numba import jit, jitclass, float64
 import numpy as np
 
@@ -332,17 +334,13 @@ _InputsSpec = [
     ("b3", float64[:]),
     ("b4", float64[:]),
     ("b5", float64[:]),
-    ("b6", float64[:]),
     ("b7", float64[:]),
     ("b8", float64[:]),
     ("b12", float64[:]),
     ("b13", float64[:]),
     ("b14", float64[:]),
-    ("b15", float64[:]),
     ("b16", float64[:]),
     ("b19", float64[:]),
-    ("b100", float64[:]),
-    ("bsum", float64[:]),
 ]
 
 
@@ -354,17 +352,13 @@ class Inputs:
         self.b3 = np.zeros(size, dtype=np.float64)
         self.b4 = np.zeros(size, dtype=np.float64)
         self.b5 = np.zeros(size, dtype=np.float64)
-        self.b6 = np.zeros(size, dtype=np.float64)
         self.b7 = np.zeros(size, dtype=np.float64)
         self.b8 = np.zeros(size, dtype=np.float64)
         self.b12 = np.zeros(size, dtype=np.float64)
         self.b13 = np.zeros(size, dtype=np.float64)
         self.b14 = np.zeros(size, dtype=np.float64)
-        self.b15 = np.zeros(size, dtype=np.float64)
         self.b16 = np.zeros(size, dtype=np.float64)
         self.b19 = np.zeros(size, dtype=np.float64)
-        self.b100 = np.zeros(size, dtype=np.float64)
-        self.bsum = np.zeros(size, dtype=np.float64)
 
 
 _OutputsSpec = [
@@ -381,6 +375,7 @@ _OutputsSpec = [
     ("Schlick", float64[:]),
     ("schlick_t", float64[:]),
     ("Wasser2", float64[:]),
+    ("bsum", float64[:]),
 ]
 
 
@@ -400,12 +395,15 @@ class Outputs:
         self.Schlick = np.zeros(size, dtype=np.float64)
         self.schlick_t = np.zeros(size, dtype=np.float64)
         self.Wasser2 = np.zeros(size, dtype=np.float64)
+        self.bsum = np.zeros(size, dtype=np.float64)
 
 
 @jit(nopython=True)
 def apply_rules(inputs: Inputs, outputs: Outputs):
     for i in range(len(outputs.nodata)):
         t0 = 1.0
+        #    bsum = b12 + b13 + b14: BSum
+        outputs.bsum[i] = inputs.b12[i] + inputs.b13[i] + inputs.b14[i]
         #    if b4 is B4_nodata:
         t1 = min(t0, _B4_B4_nodata(inputs.b4[i]))
         #        nodata = TRUE
@@ -419,9 +417,9 @@ def apply_rules(inputs: Inputs, outputs: Outputs):
         outputs.Wasser[i] = t3
         #        elif (b19 is B19_muschel and (b8 is B8_muschel_min and b8 is B8_muschel_max) and b7 is B7_muschel) or (b8 is B8_muschel_min and bsum is BSum_schill_1) or (b8 is B8_muschel_schill and bsum is BSum_schill_2):
         t3 = min(t2, 1.0 - t3)
-        t4 = min(t3, max(max(min(min(_B19_B19_muschel(inputs.b19[i]), min(_B8_B8_muschel_min(inputs.b8[i]), _B8_B8_muschel_max(inputs.b8[i]))), _B7_B7_muschel(inputs.b7[i])), min(_B8_B8_muschel_min(inputs.b8[i]), _BSum_BSum_schill_1(inputs.bsum[i]))), min(_B8_B8_muschel_schill(inputs.b8[i]), _BSum_BSum_schill_2(inputs.bsum[i]))))
+        t4 = min(t3, max(max(min(min(_B19_B19_muschel(inputs.b19[i]), min(_B8_B8_muschel_min(inputs.b8[i]), _B8_B8_muschel_max(inputs.b8[i]))), _B7_B7_muschel(inputs.b7[i])), min(_B8_B8_muschel_min(inputs.b8[i]), _BSum_BSum_schill_1(outputs.bsum[i]))), min(_B8_B8_muschel_schill(inputs.b8[i]), _BSum_BSum_schill_2(outputs.bsum[i]))))
         #            if bsum is BSum_schill_1a:
-        t5 = min(t4, _BSum_BSum_schill_1a(inputs.bsum[i]))
+        t5 = min(t4, _BSum_BSum_schill_1a(outputs.bsum[i]))
         #                Schill = TRUE
         outputs.Schill[i] = t5
         #            else:

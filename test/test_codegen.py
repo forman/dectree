@@ -1,6 +1,6 @@
 import unittest
 
-from dectree.codegen import VECTORIZE_PROP, ExprGen, _get_effective_op_pattern
+from dectree.codegen import VECTORIZE_PROP, FuzzyExprGen, _get_effective_op_pattern
 
 
 class ExprGenTest(unittest.TestCase):
@@ -11,8 +11,9 @@ class ExprGenTest(unittest.TestCase):
             YType=dict(FAST=('true()', {}, ''),
                        SLOW=('false()', {}, ''))
         )
-        var_defs = dict(x='XType', y='YType')
-        transpiler = ExprGen(type_defs, var_defs)
+        input_defs = dict(x='XType', y='YType')
+        output_defs = dict()
+        transpiler = FuzzyExprGen(type_defs, input_defs, output_defs)
         self.assertEqual(transpiler.gen_expr('y == FAST'),
                          '_YType_FAST(inputs.y)')
         self.assertEqual(transpiler.gen_expr('x != HI'),
@@ -36,18 +37,18 @@ class ExprGenTest(unittest.TestCase):
                           and_pattern=_get_effective_op_pattern('min({x}, {y})', vectorize=VECTORIZE_PROP),
                           or_pattern=_get_effective_op_pattern('max({x}, {y})', vectorize=VECTORIZE_PROP))
 
-        transpiler = ExprGen(type_defs, var_defs, vectorize=VECTORIZE_PROP, **op_patters)
+        transpiler = FuzzyExprGen(type_defs, input_defs, output_defs, vectorize=VECTORIZE_PROP, **op_patters)
         self.assertEqual(transpiler.gen_expr('x == HI and not (y == FAST or x == LO)'),
                          'np.minimum(_XType_HI(inputs.x), 1.0 - (np.maximum(_YType_FAST(inputs.y), '
                          '_XType_LO(inputs.x))))')
 
-        transpiler = ExprGen(type_defs, var_defs, parameterize=True)
+        transpiler = FuzzyExprGen(type_defs, input_defs, output_defs, parameterize=True)
         self.assertEqual(transpiler.gen_expr('x == HI and not (y == FAST or x == LO)'),
                          'min(_XType_HI(inputs.x, x1=params.XType_HI_x1, x2=params.XType_HI_x2), '
                          '1.0 - (max(_YType_FAST(inputs.y), '
                          '_XType_LO(inputs.x, x1=params.XType_LO_x1, x2=params.XType_LO_x2))))')
 
-        transpiler = ExprGen(type_defs, var_defs, vectorize=VECTORIZE_PROP, parameterize=True, **op_patters)
+        transpiler = FuzzyExprGen(type_defs, input_defs, output_defs, vectorize=VECTORIZE_PROP, parameterize=True, **op_patters)
         self.assertEqual(transpiler.gen_expr('x == HI and not (y == FAST or x == LO)'),
                          'np.minimum(_XType_HI(inputs.x, x1=params.XType_HI_x1, x2=params.XType_HI_x2), '
                          '1.0 - (np.maximum(_YType_FAST(inputs.y), '
@@ -60,9 +61,9 @@ class ExprGenTest(unittest.TestCase):
             YType=dict(FAST=('true()', {}, ''),
                        SLOW=('false()', {}, ''))
         )
-        var_defs = dict(x='XType', y='YType')
-        options = dict()
-        expr_gen = ExprGen(type_defs, var_defs, options)
+        input_defs = dict(x='XType', y='YType')
+        output_defs = dict()
+        expr_gen = FuzzyExprGen(type_defs, input_defs, output_defs)
 
         with self.assertRaises(ValueError) as cm:
             expr_gen.gen_expr('for i in range(3): pass')
@@ -70,7 +71,7 @@ class ExprGenTest(unittest.TestCase):
 
         with self.assertRaises(ValueError) as cm:
             expr_gen.gen_expr('7 < x')
-        self.assertEqual(str(cm.exception), 'Left side of comparison must be the name of an input')
+        self.assertEqual(str(cm.exception), 'Left side of comparison must be the name of an input or an output')
 
         with self.assertRaises(ValueError) as cm:
             expr_gen.gen_expr('x <= HI')

@@ -16,5 +16,19 @@ TypeDefs = Dict[TypeName, TypeDef]
 VarName = str
 VarDefs = Dict[VarName, TypeName]
 
-Rule = str
-Rules = List[Rule]
+Expression = str
+DerivedDef = Tuple[TypeName, Expression]
+DerivedDefs = Dict[VarName, DerivedDef]
+
+RuleCondition = str
+RuleIfKw = str
+RuleElifKw = str
+RuleElseKw = str
+RuleAssignKw = str
+RuleIf = Tuple[RuleIfKw, RuleCondition, "RuleBody"]
+RuleElif = Tuple[RuleElifKw, RuleCondition, "RuleBody"]
+RuleElse = Tuple[RuleElseKw, "RuleBody"]
+RuleAssign = Tuple[RuleAssignKw, VarName, PropName]
+RuleStmt = Union[RuleIf, RuleElif, RuleElse, RuleAssign]
+RuleBody = List[RuleStmt]
+Rules = List[RuleBody]
