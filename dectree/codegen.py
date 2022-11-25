@@ -4,11 +4,11 @@ from io import StringIO
 from typing import Dict, Any, Tuple, Optional, Union
 
 from .config import CONFIG_NAME_AND_PATTERN
+from .config import CONFIG_NAME_FLOAT_TYPE
 from .config import CONFIG_NAME_FUNCTION_NAME
 from .config import CONFIG_NAME_INPUTS_NAME
 from .config import CONFIG_NAME_NOT_PATTERN
 from .config import CONFIG_NAME_NO_JIT
-from .config import CONFIG_NAME_FLOAT_TYPE
 from .config import CONFIG_NAME_OR_PATTERN
 from .config import CONFIG_NAME_OUTPUTS_NAME
 from .config import CONFIG_NAME_PARAMETERIZE
@@ -177,7 +177,8 @@ class CodeGen:
             '    return ('
         )
         for var_name in var_names:
-            self._write_lines(f'{tab}{tab}{var_name!r},')
+            if not var_name.startswith('_'):
+                self._write_lines(f'{tab}{tab}{var_name!r},')
         self._write_lines(
             '    )'
         )
@@ -207,9 +208,18 @@ class CodeGen:
                           f'def {self.function_name}({function_args}):')
 
         if self.vectorize == VECTORIZE_FUNC:
-            output_var = list(self.output_defs.keys())[0]
+            any_var = list(self.output_defs.keys())[0]
             self._write_lines(
-                f'    for i in range(len(outputs.{output_var})):'
+                f'    size = outputs.{any_var}.size'
+            )
+            for var_name, (type_name, _) in self.derived_defs.items():
+                if var_name.startswith('_'):
+                    self._write_lines(
+                        f'    {var_name} = np.zeros(size, dtype=np.{self.float_type})'
+                    )
+
+            self._write_lines(
+                f'    for i in range(size):'
             )
             self._write_lines(
                 f'        t0 = 1.0'
@@ -221,7 +231,7 @@ class CodeGen:
             self._write_derived_var(var_name, derived_def, source_expr)
 
         for rule in self.rules:
-            self._write_rule_body(rule, 1, 1)
+            self._write_rule_body(rule, 0, 1)
 
     def _get_numba_decorator(self, prop_func=False):
         if self.vectorize == VECTORIZE_PROP and prop_func:
@@ -274,6 +284,8 @@ class CodeGen:
         spec_name = '_{}Spec'.format(class_name)
         spec_lines = ['{} = ['.format(spec_name)]
         for var_name in var_names:
+            if var_name.startswith('_'):
+                continue
             if param_values:
                 spec_lines.append(f'{tab}("{var_name}",'
                                   f' {self.float_type}),')
@@ -288,7 +300,9 @@ class CodeGen:
         if self.no_jit:
             spec_lines = map(lambda line: '# ' + line, spec_lines)
 
-        self._write_lines('', '', *spec_lines)
+        self._write_lines('', '',
+                          NO_INSPECTION,
+                          *spec_lines)
 
         numba_line = f'@jitclass({spec_name})'
         if self.no_jit:
@@ -308,6 +322,8 @@ class CodeGen:
                           f'class {class_name}:',
                           init_head)
         for var_name in var_names:
+            if var_name.startswith('_'):
+                continue
             if param_values:
                 self._write_lines(
                     f'{tab}{tab}self.{var_name}'
@@ -383,19 +399,19 @@ class CodeGen:
             condition = self.expr_gen.gen_expr(condition_expr)
             if keyword == 'if':
                 self._write_lines(
-                    '{tind}#{sind}{key} {expr}:'.format(tind=target_indent,
-                                                        sind=source_indent,
-                                                        key=keyword,
-                                                        expr=condition_expr)
+                    '{tind}# {sind}{key} {expr}:'.format(tind=target_indent,
+                                                         sind=source_indent,
+                                                         key=keyword,
+                                                         expr=condition_expr)
                 )
                 target_value = self.and_pattern.format(x=t0, y=condition)
             else:
                 tp = 't' + str(target_level - 2)
                 self._write_lines(
-                    '{tind}#{sind}{key} {expr}:'.format(tind=target_indent,
-                                                        sind=source_indent,
-                                                        key=keyword,
-                                                        expr=condition_expr)
+                    '{tind}# {sind}{key} {expr}:'.format(tind=target_indent,
+                                                         sind=source_indent,
+                                                         key=keyword,
+                                                         expr=condition_expr)
                 )
                 target_value = self.and_pattern.format(x=tp,
                                                        y=not_pattern.format(
@@ -407,8 +423,8 @@ class CodeGen:
                 target_value = self.and_pattern.format(x=t0, y=condition)
         else:
             self._write_lines(
-                '{tind}#{sind}else:'.format(tind=target_indent,
-                                            sind=source_indent)
+                '{tind}# {sind}else:'.format(tind=target_indent,
+                                             sind=source_indent)
             )
             target_value = self.and_pattern.format(x=t0,
                                                    y=not_pattern.format(x=t1))
@@ -424,7 +440,7 @@ class CodeGen:
                                source_level: int,
                                target_level: int):
 
-        source_indent = (source_level * 4) * ' '
+        source_indent = (4 * source_level) * ' '
         if self.vectorize == VECTORIZE_FUNC:
             target_indent = 8 * ' '
         else:
@@ -458,19 +474,26 @@ class CodeGen:
                 out_pattern = self.or_pattern.format(x='outputs.{name}',
                                                      y=out_pattern)
 
-        source_line_pattern = '{tind}#{sind}{name} = {sval}'
-        if self.vectorize == VECTORIZE_FUNC:
-            target_line_pattern = '{tind}outputs.{name}[i] = ' + out_pattern
-        else:
-            target_line_pattern = '{tind}outputs.{name} = ' + out_pattern
+        container_ref = ''
+        if not var_name.startswith('_'):
+            container_ref = 'outputs.'
 
-        self._write_lines(source_line_pattern.format(tind=target_indent,
-                                                     sind=source_indent,
-                                                     name=var_name,
-                                                     sval=var_value),
-                          target_line_pattern.format(tind=target_indent,
-                                                     name=var_name,
-                                                     tval=assignment_value))
+        source_line_pattern = '{tind}# {sind}{name} = {sval}'
+        if self.vectorize == VECTORIZE_FUNC:
+            target_line_pattern = '{tind}{ref}{name}[i] = ' + out_pattern
+        else:
+            target_line_pattern = '{tind}{ref}{name} = ' + out_pattern
+
+        self._write_lines(
+            source_line_pattern.format(tind=target_indent,
+                                       sind=source_indent,
+                                       name=var_name,
+                                       sval=var_value),
+            target_line_pattern.format(tind=target_indent,
+                                       ref=container_ref,
+                                       name=var_name,
+                                       tval=assignment_value)
+        )
 
     def _write_derived_var(self, var_name, var_type: str, source_expr: str):
 
@@ -480,26 +503,31 @@ class CodeGen:
                                            self.vectorize)
         target_expr = decompiler.decompile(ast.parse(source_expr))
 
-        source_indent = 4 * ' '
         if self.vectorize == VECTORIZE_FUNC:
             target_indent = 8 * ' '
         else:
             target_indent = 4 * ' '
 
-        source_line_pattern = '{tind}#{sind}{name} = {expr}: {type}'
-        if self.vectorize == VECTORIZE_FUNC:
-            target_line_pattern = '{tind}outputs.{name}[i] = {expr}'
-        else:
-            target_line_pattern = '{tind}outputs.{name} = {expr}'
+        container_ref = ''
+        if not var_name.startswith('_'):
+            container_ref = 'outputs.'
 
-        self._write_lines(source_line_pattern.format(tind=target_indent,
-                                                     sind=source_indent,
-                                                     name=var_name,
-                                                     expr=source_expr,
-                                                     type=var_type),
-                          target_line_pattern.format(tind=target_indent,
-                                                     name=var_name,
-                                                     expr=target_expr))
+        source_line_pattern = '{tind}# {name} = {expr}: {type}'
+        if self.vectorize == VECTORIZE_FUNC:
+            target_line_pattern = '{tind}{ref}{name}[i] = {expr}'
+        else:
+            target_line_pattern = '{tind}{ref}{name} = {expr}'
+
+        self._write_lines(
+            source_line_pattern.format(tind=target_indent,
+                                       name=var_name,
+                                       expr=source_expr,
+                                       type=var_type),
+            target_line_pattern.format(tind=target_indent,
+                                       ref=container_ref,
+                                       name=var_name,
+                                       expr=target_expr)
+        )
 
     def _get_output_def(self,
                         var_name: VarName,
@@ -582,7 +610,7 @@ class FuzzyExprGen:
             var_name = expr.left.id
             if var_name in self.input_defs:
                 container_ref = 'inputs.'
-            elif var_name in self.var_defs:
+            elif var_name in self.var_defs and not var_name.startswith('_'):
                 container_ref = 'outputs.'
             else:
                 container_ref = ''
@@ -728,7 +756,9 @@ class DerivedExprDecompiler(ExprDecompiler):
         container_ref = ''
         if var_name in self.input_defs:
             container_ref = 'inputs.'
-        elif var_name in self.input_defs or var_name in self.derived_defs:
+        elif not var_name.startswith('_') \
+                and (var_name in self.input_defs
+                     or var_name in self.derived_defs):
             container_ref = 'outputs.'
 
         subscript = ''
